@@ -1,0 +1,54 @@
+{
+  "name": "mcp-registry-spec-sdk",
+  "version": "0.1.2",
+  "description": "A minimal, typed client for the official Model Context Protocol (MCP) Registry API.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "tsup index.ts --dts --format esm --sourcemap --clean --tsconfig tsconfig.json",
+    "prepare": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "registry",
+    "sdk",
+    "ai",
+    "anthropic"
+  ],
+  "author": "Cameron Pak <cam@faith.tools>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://www.val.town/x/cameronpak/mcp-registry-spec-sdk"
+  },
+  "homepage": "https://www.val.town/x/cameronpak/mcp-registry-spec-sdk",
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "^5.6.3"
+  },
+  "sideEffects": false
+}
