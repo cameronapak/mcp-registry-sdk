@@ -10,8 +10,10 @@ import { z } from "zod";
 
 // -------- Registry-managed metadata (API responses) --------
 export const RegistryExtensionsSchema = z.object({
-  serverId: z.string(),
-  versionId: z.string(),
+  /** deprecated */
+  serverId: z.string().optional(),
+  /** deprecated */
+  versionId: z.string().optional(),
   publishedAt: z.string(),
   updatedAt: z.string().optional(),
   isLatest: z.boolean(),
@@ -80,12 +82,14 @@ export const KeyValueInputSchema = ArgumentSchema;
 // -------- Transports / Remotes --------
 export const TransportSchema = z.object({
   type: z.string(),
-  url: z.string(),
+  url: z.string().optional(),
   headers: z.array(ArgumentSchema).optional(),
 });
 
 export const RemoteSchema = z.object({
-  transportType: z.string(),
+  /** `transportType` is deprecated. Use `type` */
+  transportType: z.string().optional(),
+  type: z.string(),
   url: z.string(),
   headers: z.array(ArgumentSchema).optional(),
 });
@@ -134,15 +138,16 @@ export const ServerJSONSchema = z.object({
 
 // -------- Server Response (API output) --------
 export const ServerResponseSchema = z.object({
-  $schema: z.string().optional(),
-  name: z.string(),
-  description: z.string(),
-  version: z.string(),
-  repository: RepositorySchema.optional(),
-  websiteUrl: z.string().optional(),
-
-  packages: z.array(PackageSchema).nullable().optional(),
-  remotes: z.array(RemoteSchema).nullable().optional(),
+  server: z.object({
+    $schema: z.string().optional(),
+    name: z.string(),
+    description: z.string(),
+    repository: RepositorySchema.optional(),
+    version: z.string(),
+    websiteUrl: z.string().url().optional(),
+    packages: z.array(PackageSchema).nullable().optional(),
+    remotes: z.array(RemoteSchema).nullable().optional(),
+  }),
 
   _meta: ServerResponseMetaSchema.optional(),
 });
