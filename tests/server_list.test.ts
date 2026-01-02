@@ -12,6 +12,9 @@ Deno.test("listServers returns live registry data", async () => {
   const response = await defaultClient.server.listServers();
   const parse = ServerListResponseSchema.safeParse(response);
 
+  if (!parse.success) {
+    console.log("Schema validation error:", parse.error);
+  }
   assert(parse.success === true, "ListServerResponse is valid");
 
   assertGreater(
@@ -27,7 +30,7 @@ Deno.test("listServers returns live registry data", async () => {
       "server name should be a non-empty string",
     );
     assert(
-      typeof firstServer.server.version === "string" && firstServer.server.name.length > 0,
+      typeof firstServer.server.version === "string" && firstServer.server.version.length > 0,
       "server version should be a non-empty string",
     );
   }

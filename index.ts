@@ -336,9 +336,13 @@ export class ServerNamespace {
   /**
    * Get server by name (latest or requested version via dedicated endpoints)
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/get-server}
+   * @deprecated Use getServerVersion(name, 'latest') instead
    */
   async getServerByName(serverName: string): Promise<ServerResponse> {
-    const url = `${this.baseUrl}/v0/servers/${encodeURIComponent(serverName)}`;
+    console.warn(
+      'getServerByName() is deprecated. Use getServerVersion(name, "latest") instead.',
+    );
+    const url = `${this.baseUrl}/v0/servers/${encodeURIComponent(serverName)}/versions/latest`;
 
     const response = await fetch(url, {
       headers: {

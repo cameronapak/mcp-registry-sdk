@@ -110,7 +110,7 @@ export const PackageSchema = z.object({
   fileSha256: z.string().optional(),
 
   name: z.string().optional(),
-  version: z.string(),
+  version: z.string().optional(),
 
   runtimeHint: z.string().optional(),
   runtimeArguments: z.array(ArgumentSchema).nullable().optional(),
