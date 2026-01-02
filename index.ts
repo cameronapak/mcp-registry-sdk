@@ -501,6 +501,40 @@ export class AdminNamespace {
 
     return await response.json();
   }
+
+  /**
+   * Delete a specific server version (admin only)
+   * Note: Optional endpoint in generic API spec, not implemented by official registry
+   * {@see https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/generic-registry-api.md}
+   */
+  async deleteServerVersion(
+    serverName: string,
+    version: string,
+    registryToken?: string,
+  ): Promise<void> {
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
+
+    const token = registryToken ?? this.getAuthToken?.();
+    if (!token) {
+      throw new RegistryError("Missing registry token for deleteServerVersion");
+    }
+
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        "Accept": "application/json, application/problem+json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorModel = await parseErrorModel(response);
+      throw new RegistryError(
+        `Failed to delete server version: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
+        errorModel,
+      );
+    }
+  }
 }
 
 /**

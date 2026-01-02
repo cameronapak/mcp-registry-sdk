@@ -72,10 +72,10 @@ Update the file after completing each sub-task, not just after completing an ent
    - [x] 7.12 Export all new schemas as Zod schemas and TypeScript types
    - [x] 7.13 Update existing auth namespace to use new GitHub schemas
 
-- [ ] 8.0 Add New Admin Endpoints
-  - [ ] 8.1 Add `PUT /servers/{serverName}/versions/{version}` endpoint for updates
-  - [ ] 8.2 Add documentation for `DELETE /servers/{serverName}/versions/{version}` (optional)
-  - [ ] 8.3 Ensure these endpoints use configured API version (v0 or v0.1)
+- [x] 8.0 Add New Admin Endpoints
+   - [x] 8.1 Add `PUT /servers/{serverName}/versions/{version}` endpoint for updates
+   - [x] 8.2 Add documentation for `DELETE /servers/{serverName}/versions/{version}` (optional)
+   - [x] 8.3 Ensure these endpoints use configured API version (v0 or v0.1)
 
 - [ ] 9.0 Update Documentation
   - [ ] 9.1 Update README to document new `apiVersion` constructor option
