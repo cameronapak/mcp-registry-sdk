@@ -11,7 +11,9 @@ import type {
   ServerJSON,
   ServerResponse,
   ServerListResponse,
+  SignatureTokenExchangeInput,
   TokenResponse,
+  VersionBody,
 } from "./types.ts";
 
 /**
@@ -123,12 +125,10 @@ export class AuthNamespace {
    * Exchange HTTP signature for Registry JWT
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-http-token}
    */
-  async exchangeHTTPSignatureForRegistryJWT({
-    domain,
-    signed_timestamp,
-    timestamp,
-  }: HTTPTokenExchangeInputBody): Promise<TokenResponse> {
-    const url = `${this.baseUrl}/v0/auth/http`;
+  async exchangeHTTPSignatureForRegistryJWT(
+    signatureTokenExchangeInput: SignatureTokenExchangeInput,
+  ): Promise<TokenResponse> {
+    const url = `${this.baseUrl}/${this.apiVersion}/auth/http`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -136,11 +136,7 @@ export class AuthNamespace {
         "Accept": "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        domain: domain,
-        signed_timestamp: signed_timestamp,
-        timestamp: timestamp,
-      }),
+      body: JSON.stringify(signatureTokenExchangeInput),
     });
 
     if (!response.ok) {
@@ -161,7 +157,7 @@ export class AuthNamespace {
   async exchangeOIDCIDTokenForRegistryJWT(
     { oidc_token }: OIDCTokenExchangeInputBody,
   ): Promise<TokenResponse> {
-    const url = `${this.baseUrl}/v0/auth/oidc`;
+    const url = `${this.baseUrl}/${this.apiVersion}/auth/oidc`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -190,9 +186,9 @@ export class AuthNamespace {
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-dns-token}
    */
   async exchangeDNSSignatureForRegistryJWT(
-    dnsTokenExchangeInput: DNSTokenExchangeInputBody,
+    signatureTokenExchangeInput: SignatureTokenExchangeInput,
   ): Promise<TokenResponse> {
-    const url = `${this.baseUrl}/v0/auth/dns`;
+    const url = `${this.baseUrl}/${this.apiVersion}/auth/dns`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -200,7 +196,7 @@ export class AuthNamespace {
         "Accept": "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(dnsTokenExchangeInput),
+      body: JSON.stringify(signatureTokenExchangeInput),
     });
 
     if (!response.ok) {
@@ -283,6 +279,44 @@ export class PingNamespace {
       const errorModel = await parseErrorModel(response);
       throw new RegistryError(
         `Failed to ping: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
+        errorModel,
+      );
+    }
+
+    return await response.json();
+  }
+}
+
+/**
+ * Version namespace for MCP Registry API
+ */
+export class VersionNamespace {
+  private baseUrl: string;
+  private apiVersion: string;
+
+  constructor(baseUrl: string, apiVersion: string) {
+    this.baseUrl = baseUrl;
+    this.apiVersion = apiVersion;
+  }
+
+  /**
+   * Get version information about the registry
+   * {@see https://registry.modelcontextprotocol.io/docs#/operations/get-version}
+   */
+  async getVersion(): Promise<VersionBody> {
+    const url = `${this.baseUrl}/${this.apiVersion}/version`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json, application/problem+json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorModel = await parseErrorModel(response);
+      throw new RegistryError(
+        `Failed to get version: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
         errorModel,
       );
     }
@@ -535,6 +569,7 @@ export class MCPRegistryClient {
   public server: ServerNamespace;
   public health: HealthNamespace;
   public ping: PingNamespace;
+  public version: VersionNamespace;
   public publish: PublishNamespace;
   public admin: AdminNamespace;
 
@@ -551,6 +586,7 @@ export class MCPRegistryClient {
     this.server = new ServerNamespace(this.baseUrl, this.apiVersion);
     this.health = new HealthNamespace(this.baseUrl, this.apiVersion);
     this.ping = new PingNamespace(this.baseUrl, this.apiVersion);
+    this.version = new VersionNamespace(this.baseUrl, this.apiVersion);
     this.publish = new PublishNamespace(this.baseUrl, this.apiVersion, () => this.defaultAuthToken);
     this.admin = new AdminNamespace(this.baseUrl, this.apiVersion, () => this.defaultAuthToken);
   }
@@ -587,7 +623,9 @@ export type {
   ServerListResponse,
   ServerResponse,
   ServerResponseMeta,
+  SignatureTokenExchangeInput,
   TokenResponse,
+  VersionBody,
   StdioTransport,
   StreamableHttpTransport,
   SseTransport,
@@ -618,9 +656,11 @@ export {
   GitHubOIDCTokenExchangeInputBodySchema,
   HTTPTokenExchangeInputBodySchema,
   OIDCTokenExchangeInputBodySchema,
+  SignatureTokenExchangeInputSchema,
   DNSTokenExchangeInputBodySchema,
   HealthBodySchema,
   PingBodySchema,
+  VersionBodySchema,
   ErrorDetailSchema,
   ErrorModelSchema,
 } from "./types.ts";

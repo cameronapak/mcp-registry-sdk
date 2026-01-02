@@ -240,6 +240,12 @@ export const DNSTokenExchangeInputBodySchema = z.object({
   timestamp: z.string(),
 });
 
+export const SignatureTokenExchangeInputSchema = z.object({
+  domain: z.string(),
+  signed_timestamp: z.string(),
+  timestamp: z.string(),
+});
+
 // -------- Health / Ping --------
 export const HealthBodySchema = z.object({
   status: z.string(),
@@ -248,6 +254,12 @@ export const HealthBodySchema = z.object({
 export const PingBodySchema = z.object({
   environment: z.string(),
   version: z.string(),
+});
+
+export const VersionBodySchema = z.object({
+  version: z.string(),
+  git_commit: z.string(),
+  build_time: z.string(),
 });
 
 // -------- Errors --------
@@ -308,9 +320,13 @@ export type OIDCTokenExchangeInputBody = z.infer<
 export type DNSTokenExchangeInputBody = z.infer<
   typeof DNSTokenExchangeInputBodySchema
 >;
+export type SignatureTokenExchangeInput = z.infer<
+  typeof SignatureTokenExchangeInputSchema
+>;
 
 export type HealthBody = z.infer<typeof HealthBodySchema>;
 export type PingBody = z.infer<typeof PingBodySchema>;
+export type VersionBody = z.infer<typeof VersionBodySchema>;
 
 export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;
 export type ErrorModel = z.infer<typeof ErrorModelSchema>;

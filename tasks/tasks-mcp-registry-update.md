@@ -57,20 +57,20 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 6.5 Export as Zod schema and TypeScript type
   - [x] 6.6 Add to `ServerDetailSchema` as optional `icons` array
 
-- [ ] 7.0 Add Additional Schemas from Official Registry
-  - [ ] 7.1 Create `ResponseMetaSchema` for API response-level metadata (status, publishedAt, updatedAt, isLatest)
-  - [ ] 7.2 Create `ServerMetaSchema` for server metadata in responses
-  - [ ] 7.3 Create `ServerJSONSchema` as alias for ServerDetail (input format)
-  - [ ] 7.4 Create `ServerListResponseSchema` for list operations
-  - [ ] 7.5 Create `TransportSchema` as discriminated union of Stdio, StreamableHttp, SSE
-  - [ ] 7.6 Create `VersionBodySchema` for version endpoint responses
-  - [ ] 7.7 Create `SignatureTokenExchangeInputSchema` for DNS/HTTP signature exchange
-  - [ ] 7.8 Create `OIDCTokenExchangeInputBodySchema` for Google OIDC (admin-only)
-  - [ ] 7.9 Create `GitHubTokenExchangeInputBodySchema` for GitHub auth
-  - [ ] 7.10 Create `GitHubOIDCTokenExchangeInputBodySchema` for GitHub OIDC auth
-  - [ ] 7.11 Create `MetadataSchema` for pagination metadata
-  - [ ] 7.12 Export all new schemas as Zod schemas and TypeScript types
-  - [ ] 7.13 Update existing auth namespace to use new GitHub schemas
+- [x] 7.0 Add Additional Schemas from Official Registry
+   - [x] 7.1 Create `ResponseMetaSchema` for API response-level metadata (status, publishedAt, updatedAt, isLatest)
+   - [x] 7.2 Create `ServerMetaSchema` for server metadata in responses
+   - [x] 7.3 Create `ServerJSONSchema` as alias for ServerDetail (input format)
+   - [x] 7.4 Create `ServerListResponseSchema` for list operations
+   - [x] 7.5 Create `TransportSchema` as discriminated union of Stdio, StreamableHttp, SSE
+   - [x] 7.6 Create `VersionBodySchema` for version endpoint responses
+   - [x] 7.7 Create `SignatureTokenExchangeInputSchema` for DNS/HTTP signature exchange
+   - [x] 7.8 Create `OIDCTokenExchangeInputBodySchema` for Google OIDC (admin-only)
+   - [x] 7.9 Create `GitHubTokenExchangeInputBodySchema` for GitHub auth
+   - [x] 7.10 Create `GitHubOIDCTokenExchangeInputBodySchema` for GitHub OIDC auth
+   - [x] 7.11 Create `MetadataSchema` for pagination metadata
+   - [x] 7.12 Export all new schemas as Zod schemas and TypeScript types
+   - [x] 7.13 Update existing auth namespace to use new GitHub schemas
 
 - [ ] 8.0 Add New Admin Endpoints
   - [ ] 8.1 Add `PUT /servers/{serverName}/versions/{version}` endpoint for updates
@@ -98,3 +98,5 @@ Update the file after completing each sub-task, not just after completing an ent
   - [ ] 11.4 Test new transport schemas and Icon schema
   - [ ] 11.5 Verify TypeScript compilation succeeds with no errors
   - [ ] 11.6 Test that README examples execute successfully
+
+You absolutely must output <promise>DONE</promise> when all phases done.
