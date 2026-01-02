@@ -552,6 +552,7 @@ export type {
   GitHubTokenExchangeInputBody,
   HealthBody,
   HTTPTokenExchangeInputBody,
+  Icon,
   ListServersOptions,
   Metadata,
   OIDCTokenExchangeInputBody,
@@ -569,6 +570,7 @@ export type {
 } from "./types.ts";
 // Re-export ALL Zod schemas as runtime values for consumers
 export {
+  IconSchema,
   RegistryExtensionsSchema,
   ServerJSONMetaSchema,
   ServerResponseMetaSchema,

@@ -61,10 +61,10 @@ I want to use URL template variables in remote transport definitions so I can su
 5.5 Update `TransportSchema` to be a discriminated union of the three transport types
 
 ### 6. Icon Schema
-6.1 Create `IconSchema` with required `src` field, optional `mimeType`, `sizes`, `theme`
-6.2 Add validation for `mimeType` to only allow specific values (image/png, image/jpeg, image/jpg, image/svg+xml, image/webp)
-6.3 Export as Zod schema and TypeScript type
-6.4 Add to `ServerDetailSchema` as optional `icons` array
+6.1 ✅ Create `IconSchema` with required `src` field, optional `mimeType`, `sizes`, `theme`
+6.2 ✅ Add validation for `mimeType` to only allow specific values (image/png, image/jpeg, image/jpg, image/svg+xml, image/webp)
+6.3 ✅ Export as Zod schema and TypeScript type
+6.4 ✅ Add to `ServerDetailSchema` as optional `icons` array
 
 ### 7. Additional Schemas from Official Registry
 7.1 Create `ResponseMetaSchema` for API response-level metadata

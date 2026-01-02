@@ -79,6 +79,20 @@ export const ArgumentSchema = z.object({
 export const InputSchema = ArgumentSchema;
 export const KeyValueInputSchema = ArgumentSchema;
 
+// -------- Icon --------
+export const IconSchema = z.object({
+  src: z.string().url().max(255),
+  mimeType: z.enum([
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/svg+xml",
+    "image/webp"
+  ]).optional(),
+  sizes: z.array(z.string().regex(/^(\d+x\d+|any)$/)).optional(),
+  theme: z.enum(["light", "dark"]).optional(),
+});
+
 // -------- Transports / Remotes --------
 export const TransportSchema = z.object({
   type: z.string(),
@@ -128,6 +142,7 @@ export const ServerJSONSchema = z.object({
   version: z.string(),
   repository: RepositorySchema.optional(),
   websiteUrl: z.string().optional(),
+  icons: z.array(IconSchema).optional(),
 
   packages: z.array(PackageSchema).nullable().optional(),
   remotes: z.array(RemoteSchema).nullable().optional(),
@@ -145,6 +160,7 @@ export const ServerResponseSchema = z.object({
     repository: RepositorySchema.optional(),
     version: z.string(),
     websiteUrl: z.string().url().optional(),
+    icons: z.array(IconSchema).optional(),
     packages: z.array(PackageSchema).nullable().optional(),
     remotes: z.array(RemoteSchema).nullable().optional(),
   }),
@@ -244,6 +260,8 @@ export type Package = z.infer<typeof PackageSchema>;
 
 export type ServerJSON = z.infer<typeof ServerJSONSchema>;
 export type ServerResponse = z.infer<typeof ServerResponseSchema>;
+
+export type Icon = z.infer<typeof IconSchema>;
 
 export type Metadata = z.infer<typeof MetadataSchema>;
 export type ServerListResponse = z.infer<typeof ServerListResponseSchema>;

@@ -32,9 +32,9 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 2.5 Ensure URL encoding with `encodeURIComponent()` for all server names and versions
   - [x] 2.6 Fix test bug: changed name.length to version.length in test assertion
 
-- [ ] 3.0 Update Package Schema
-  - [ ] 3.1 Make `version` field optional in `PackageSchema` (remove from `required` array)
-  - [ ] 3.2 Update Zod schema validation to allow version to be omitted
+- [x] 3.0 Update Package Schema
+  - [x] 3.1 Make `version` field optional in `PackageSchema` (remove from `required` array)
+  - [x] 3.2 Update Zod schema validation to allow version to be omitted
   - [ ] 3.3 Verify TypeScript type reflects optional version field
 
 - [ ] 4.0 Update Transport Schemas
@@ -49,13 +49,13 @@ Update the file after completing each sub-task, not just after completing an ent
   - [ ] 5.2 Define variables as object with string keys and Argument values
   - [ ] 5.3 Add description for URL template variable substitution pattern (`{curly_braces}`)
 
-- [ ] 6.0 Add Icon Schema
-  - [ ] 6.1 Create `IconSchema` with required `src` field
-  - [ ] 6.2 Add optional `mimeType` field with enum validation (image/png, image/jpeg, image/jpg, image/svg+xml, image/webp)
-  - [ ] 6.3 Add optional `sizes` field with pattern validation (`^(\d+x\d+|any)$`)
-  - [ ] 6.4 Add optional `theme` field with enum validation ('light', 'dark')
-  - [ ] 6.5 Export as Zod schema and TypeScript type
-  - [ ] 6.6 Add to `ServerDetailSchema` as optional `icons` array
+- [x] 6.0 Add Icon Schema
+  - [x] 6.1 Create `IconSchema` with required `src` field
+  - [x] 6.2 Add optional `mimeType` field with enum validation (image/png, image/jpeg, image/jpg, image/svg+xml, image/webp)
+  - [x] 6.3 Add optional `sizes` field with pattern validation (`^(\d+x\d+|any)$`)
+  - [x] 6.4 Add optional `theme` field with enum validation ('light', 'dark')
+  - [x] 6.5 Export as Zod schema and TypeScript type
+  - [x] 6.6 Add to `ServerDetailSchema` as optional `icons` array
 
 - [ ] 7.0 Add Additional Schemas from Official Registry
   - [ ] 7.1 Create `ResponseMetaSchema` for API response-level metadata (status, publishedAt, updatedAt, isLatest)
