@@ -406,7 +406,7 @@ export class ServerNamespace {
   /**
    * List all versions for a server by name
    */
-  async listServerVersions(serverName: string): Promise<ServerResponse[]> {
+  async listServerVersions(serverName: string): Promise<ServerListResponse> {
     const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions`;
 
     const response = await fetch(url, {

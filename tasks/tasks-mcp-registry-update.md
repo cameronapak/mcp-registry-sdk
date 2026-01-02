@@ -105,12 +105,12 @@ Update the file after completing each sub-task, not just after completing an ent
    - [ ] 10.3 Include detailed migration notes for users
    - [ ] 10.4 Update version references in any remaining documentation
 
- - [ ] 11.0 Testing & Validation
-   - [x] 11.1 Run existing tests in `tests/` directory to ensure no regressions
-  - [ ] 11.2 Add tests for new version methods (getServerVersion, listServerVersions)
-  - [ ] 11.3 Add tests for API version configuration (v0 vs v0.1)
-  - [ ] 11.4 Test new transport schemas and Icon schema
+  - [ ] 11.0 Testing & Validation
+    - [x] 11.1 Run existing tests in `tests/` directory to ensure no regressions
+   - [x] 11.2 Add tests for new version methods (getServerVersion, listServerVersions)
+   - [ ] 11.3 Add tests for API version configuration (v0 vs v0.1)
+   - [ ] 11.4 Test new transport schemas and Icon schema
     - [x] 11.5 Verify TypeScript compilation succeeds with no errors
-  - [ ] 11.6 Test that README examples execute successfully
+   - [ ] 11.6 Test that README examples execute successfully
 
 You absolutely must output <promise>DONE</promise> when all phases done.

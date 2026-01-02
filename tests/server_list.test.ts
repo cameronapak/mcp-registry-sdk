@@ -63,3 +63,53 @@ Deno.test("listServers propagates RegistryError on bad base URL", async () => {
     "Failed to list servers",
   );
 });
+
+Deno.test("getServerVersion returns valid server for latest version", async () => {
+  const response = await defaultClient.server.getServerVersion("ai.aliengiraffe/spotdb", "latest");
+
+  assert(
+    typeof response.server.name === "string" && response.server.name.length > 0,
+    "server name should be a non-empty string",
+  );
+  assert(
+    typeof response.server.version === "string" && response.server.version.length > 0,
+    "server version should be a non-empty string",
+  );
+});
+
+Deno.test("listServerVersions returns array of server versions", async () => {
+  const versionsResponse = await defaultClient.server.listServerVersions("ai.aliengiraffe/spotdb");
+
+  assert(
+    Array.isArray(versionsResponse.servers) && versionsResponse.servers.length > 0,
+    "listServerVersions should return a non-empty array",
+  );
+
+  const firstVersion = versionsResponse.servers.at(0);
+  if (firstVersion) {
+    assert(
+      typeof firstVersion.server.name === "string" && firstVersion.server.name.length > 0,
+      "server name should be a non-empty string",
+    );
+    assert(
+      typeof firstVersion.server.version === "string" && firstVersion.server.version.length > 0,
+      "server version should be a non-empty string",
+    );
+  }
+});
+
+Deno.test("getServerVersion propagates RegistryError for non-existent server", async () => {
+  await assertRejects(
+    () => defaultClient.server.getServerVersion("non-existent-server-12345", "latest"),
+    RegistryError,
+    "Failed to get version",
+  );
+});
+
+Deno.test("listServerVersions propagates RegistryError for non-existent server", async () => {
+  await assertRejects(
+    () => defaultClient.server.listServerVersions("non-existent-server-12345"),
+    RegistryError,
+    "Failed to list versions",
+  );
+});
