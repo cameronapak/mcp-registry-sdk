@@ -50,9 +50,11 @@ async function parseErrorModel(response: Response): Promise<ErrorModel | undefin
  */
 export class AuthNamespace {
   private baseUrl: string;
+  private apiVersion: string;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, apiVersion: string) {
     this.baseUrl = baseUrl;
+    this.apiVersion = apiVersion;
   }
 
   /**
@@ -62,7 +64,7 @@ export class AuthNamespace {
   async exchangeGitHubOAuthAccessTokenForRegistryJWT(
     { github_token }: GitHubTokenExchangeInputBody,
   ): Promise<TokenResponse> {
-    const url = `${this.baseUrl}/v0/auth/github-at`;
+    const url = `${this.baseUrl}/${this.apiVersion}/auth/github-at`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -93,7 +95,7 @@ export class AuthNamespace {
   async exchangeGitHubOIDCTokenForRegistryJWT(
     { oidc_token }: GitHubOIDCTokenExchangeInputBody,
   ): Promise<TokenResponse> {
-    const url = `${this.baseUrl}/v0/auth/github-oidc`;
+    const url = `${this.baseUrl}/${this.apiVersion}/auth/github-oidc`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -218,9 +220,11 @@ export class AuthNamespace {
  */
 export class HealthNamespace {
   private baseUrl: string;
+  private apiVersion: string;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, apiVersion: string) {
     this.baseUrl = baseUrl;
+    this.apiVersion = apiVersion;
   }
 
   /**
@@ -228,7 +232,7 @@ export class HealthNamespace {
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/get-health}
    */
   async getHealth(): Promise<HealthBody> {
-    const url = `${this.baseUrl}/v0/health`;
+    const url = `${this.baseUrl}/${this.apiVersion}/health`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -254,9 +258,11 @@ export class HealthNamespace {
  */
 export class PingNamespace {
   private baseUrl: string;
+  private apiVersion: string;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, apiVersion: string) {
     this.baseUrl = baseUrl;
+    this.apiVersion = apiVersion;
   }
 
   /**
@@ -264,7 +270,7 @@ export class PingNamespace {
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/ping}
    */
   async ping(): Promise<PingBody> {
-    const url = `${this.baseUrl}/v0/ping`;
+    const url = `${this.baseUrl}/${this.apiVersion}/ping`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -290,9 +296,11 @@ export class PingNamespace {
  */
 export class ServerNamespace {
   private baseUrl: string;
+  private apiVersion: string;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, apiVersion: string) {
     this.baseUrl = baseUrl;
+    this.apiVersion = apiVersion;
   }
 
   /**
@@ -312,7 +320,7 @@ export class ServerNamespace {
     }
     if (options.version) params.append("version", options.version);
 
-    const url = `${this.baseUrl}/v0/servers${
+    const url = `${this.baseUrl}/${this.apiVersion}/servers${
       params.toString() ? `?${params.toString()}` : ""
     }`;
 
@@ -342,7 +350,7 @@ export class ServerNamespace {
     console.warn(
       'getServerByName() is deprecated. Use getServerVersion(name, "latest") instead.',
     );
-    const url = `${this.baseUrl}/v0/servers/${encodeURIComponent(serverName)}/versions/latest`;
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/latest`;
 
     const response = await fetch(url, {
       headers: {
@@ -365,7 +373,7 @@ export class ServerNamespace {
    * List all versions for a server by name
    */
   async listServerVersions(serverName: string): Promise<ServerResponse[]> {
-    const url = `${this.baseUrl}/v0/servers/${encodeURIComponent(serverName)}/versions`;
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions`;
 
     const response = await fetch(url, {
       headers: {
@@ -388,7 +396,7 @@ export class ServerNamespace {
    * Get a specific version for a server by name
    */
   async getServerVersion(serverName: string, version: string): Promise<ServerResponse> {
-    const url = `${this.baseUrl}/v0/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
 
     const response = await fetch(url, {
       headers: {
@@ -413,10 +421,12 @@ export class ServerNamespace {
  */
 export class AdminNamespace {
   private baseUrl: string;
+  private apiVersion: string;
   private getAuthToken?: () => string | undefined;
 
-  constructor(baseUrl: string, getAuthToken?: () => string | undefined) {
+  constructor(baseUrl: string, apiVersion: string, getAuthToken?: () => string | undefined) {
     this.baseUrl = baseUrl;
+    this.apiVersion = apiVersion;
     this.getAuthToken = getAuthToken;
   }
 
@@ -430,7 +440,7 @@ export class AdminNamespace {
     server: ServerJSON,
     registryToken?: string,
   ): Promise<ServerResponse> {
-    const url = `${this.baseUrl}/v0/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
 
     const token = registryToken ?? this.getAuthToken?.();
     if (!token) {
@@ -464,10 +474,12 @@ export class AdminNamespace {
  */
 export class PublishNamespace {
   private baseUrl: string;
+  private apiVersion: string;
   private getAuthToken?: () => string | undefined;
 
-  constructor(baseUrl: string, getAuthToken?: () => string | undefined) {
+  constructor(baseUrl: string, apiVersion: string, getAuthToken?: () => string | undefined) {
     this.baseUrl = baseUrl;
+    this.apiVersion = apiVersion;
     this.getAuthToken = getAuthToken;
   }
 
@@ -479,7 +491,7 @@ export class PublishNamespace {
     server: ServerJSON,
     registryToken?: string,
   ): Promise<ServerResponse> {
-    const url = `${this.baseUrl}/v0/publish`;
+    const url = `${this.baseUrl}/${this.apiVersion}/publish`;
 
     const token = registryToken ?? this.getAuthToken?.();
     if (!token) {
@@ -511,9 +523,14 @@ export class PublishNamespace {
 /**
  * MCP Registry SDK - Simple class-based client for the official MCP Registry API
  * {@see https://registry.modelcontextprotocol.io/docs}
+ * 
+ * @param baseUrl - Registry base URL (default: https://registry.modelcontextprotocol.io)
+ * @param apiVersion - API version: 'v0' (development, evolving) or 'v0.1' (stable, backward-compatible only)
+ *                     Default: 'v0' for backward compatibility. Use 'v0.1' for production.
  */
 export class MCPRegistryClient {
   private baseUrl: string;
+  private apiVersion: "v0" | "v0.1";
   public auth: AuthNamespace;
   public server: ServerNamespace;
   public health: HealthNamespace;
@@ -524,14 +541,18 @@ export class MCPRegistryClient {
   // Optional default token used by publish/admin when not provided per-call
   private defaultAuthToken?: string;
 
-  constructor(baseUrl: string = "https://registry.modelcontextprotocol.io") {
+  constructor(
+    baseUrl: string = "https://registry.modelcontextprotocol.io",
+    apiVersion: "v0" | "v0.1" = "v0",
+  ) {
     this.baseUrl = baseUrl;
-    this.auth = new AuthNamespace(this.baseUrl);
-    this.server = new ServerNamespace(this.baseUrl);
-    this.health = new HealthNamespace(this.baseUrl);
-    this.ping = new PingNamespace(this.baseUrl);
-    this.publish = new PublishNamespace(this.baseUrl, () => this.defaultAuthToken);
-    this.admin = new AdminNamespace(this.baseUrl, () => this.defaultAuthToken);
+    this.apiVersion = apiVersion;
+    this.auth = new AuthNamespace(this.baseUrl, this.apiVersion);
+    this.server = new ServerNamespace(this.baseUrl, this.apiVersion);
+    this.health = new HealthNamespace(this.baseUrl, this.apiVersion);
+    this.ping = new PingNamespace(this.baseUrl, this.apiVersion);
+    this.publish = new PublishNamespace(this.baseUrl, this.apiVersion, () => this.defaultAuthToken);
+    this.admin = new AdminNamespace(this.baseUrl, this.apiVersion, () => this.defaultAuthToken);
   }
 
   /**

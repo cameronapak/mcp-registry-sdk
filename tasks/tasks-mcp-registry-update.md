@@ -17,12 +17,12 @@ Update the file after completing each sub-task, not just after completing an ent
 
 ## Tasks
 
-- [ ] 1.0 Add API Version Support
-  - [ ] 1.1 Add `apiVersion` parameter to `MCPRegistryClient` constructor with default 'v0'
-  - [ ] 1.2 Store apiVersion as private property on client class
-  - [ ] 1.3 Update all namespace constructors (Auth, Server, Publish, Admin, Health, Ping) to accept apiVersion
-  - [ ] 1.4 Update all namespace methods to use configurable API version in URL paths
-  - [ ] 1.5 Add documentation comment explaining v0 (dev) vs v0.1 (stable) difference
+- [x] 1.0 Add API Version Support
+  - [x] 1.1 Add `apiVersion` parameter to `MCPRegistryClient` constructor with default 'v0'
+  - [x] 1.2 Store apiVersion as private property on client class
+  - [x] 1.3 Update all namespace constructors (Auth, Server, Publish, Admin, Health, Ping) to accept apiVersion
+  - [x] 1.4 Update all namespace methods to use configurable API version in URL paths
+  - [x] 1.5 Add documentation comment explaining v0 (dev) vs v0.1 (stable) difference
 
 - [x] 2.0 Update Server Endpoint Methods
   - [x] 2.1 Update `getServerByName()` to call `/versions/latest` endpoint internally
