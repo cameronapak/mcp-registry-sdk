@@ -18,7 +18,8 @@ Requires Node.js 18+.
 // ESM in Node 18+
 import { MCPRegistryClient } from "mcp-registry-spec-sdk";
 
-const client = new MCPRegistryClient(); // defaults to https://registry.modelcontextprotocol.io
+// Recommended: use v0.1 (stable) API for production
+const client = new MCPRegistryClient(undefined, "v0.1");
 
 // Optionally set a default Bearer token for publish/admin
 client.setAuthToken(process.env.MCP_REGISTRY_TOKEN);
@@ -37,10 +38,16 @@ console.log("health:", health);
 const list = await client.server.listServers({ search: "openai", limit: 10, updatedSince: "2024-01-01T00:00:00Z" });
 console.log("servers:", list.servers.length, "next:", list.metadata.nextCursor);
 
-// Get a server by name (latest)
+// Get a server by name (latest) - deprecated, use getServerVersion instead
 const server = await client.server.getServerByName("some-server-name");
 console.log("server:", server.name);
 ```
+
+**API Versions:**
+- `v0` (default): Development version, may evolve with additive changes
+- `v0.1` (recommended): Stable version, only additive backward-compatible changes
+
+Use `v0.1` for production environments. Both versions share the same current endpoints, but `v0.1` is guaranteed to maintain backward compatibility.
 
 ## API surface
 
@@ -114,6 +121,20 @@ Get a specific version of a server:
 ```ts
 const v = await client.server.getServerVersion("server-name", "1.2.3");
 // v: ServerResponse
+```
+
+#### Migration Note
+
+The `getServerByName()` method is **deprecated**. Update your code to use explicit version methods:
+
+```ts
+// Old (deprecated) - implicit "latest"
+const server = await client.server.getServerByName("my-server");
+
+// New (recommended) - explicit version
+const latest = await client.server.getServerVersion("my-server", "latest");
+const specific = await client.server.getServerVersion("my-server", "1.0.0");
+const allVersions = await client.server.listServerVersions("my-server");
 ```
 
 ### Publish
@@ -221,7 +242,92 @@ import type {
   ListServersOptions,
   TokenResponse,
   ErrorModel,
+  StdioTransport,
+  StreamableHttpTransport,
+  SseTransport,
+  Icon,
 } from "mcp-registry-spec-sdk";
+```
+
+### Server JSON Schema
+
+The SDK uses version `2025-12-11` of the server.json schema. Update your `$schema` references:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/server.schema.json",
+  "name": "my-mcp-server",
+  "description": "My MCP server",
+  "version": "1.0.0"
+}
+```
+
+### Transport Types
+
+Servers can use three transport types:
+
+```ts
+import type { StdioTransport, StreamableHttpTransport, SseTransport } from "mcp-registry-spec-sdk";
+
+// Stdio transport - local process execution
+const stdio: StdioTransport = { type: 'stdio' };
+
+// Streamable HTTP transport - streaming responses
+const http: StreamableHttpTransport = {
+  type: 'streamable-http',
+  url: 'https://api.example.com/mcp',
+  headers: [
+    { name: 'Authorization', value: 'Bearer {token}' }
+  ]
+};
+
+// SSE transport - server-sent events
+const sse: SseTransport = {
+  type: 'sse',
+  url: 'https://api.example.com/mcp',
+  headers: [
+    { name: 'Authorization', value: 'Bearer {token}' }
+  ]
+};
+```
+
+### URL Template Variables
+
+Remote transports support URL template variables for multi-tenant deployments:
+
+```ts
+import type { Remote, Argument } from "mcp-registry-spec-sdk";
+
+const remoteWithVariables: Remote = {
+  type: 'sse',
+  url: 'https://api.{tenant_id}.example.com/mcp',
+  variables: {
+    tenant_id: {
+      name: 'tenant_id',
+      description: 'Tenant identifier',
+      isRequired: true,
+      valueHint: 'your-tenant-id'
+    } as Argument
+  },
+  headers: []
+};
+```
+
+URLs use `{variable_name}` placeholders that get replaced with values from the `variables` object.
+
+### Icon Schema
+
+Add icons to your server definitions:
+
+```ts
+import type { Icon } from "mcp-registry-spec-sdk";
+
+const icon: Icon = {
+  src: 'https://example.com/icon.png', // HTTPS URL, max 255 chars
+  mimeType: 'image/png', // optional: 'image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'
+  sizes: ['32x32', '64x64'], // optional: e.g., ['32x32', '64x64'] or ['any']
+  theme: 'light' // optional: 'light' or 'dark'
+};
 ```
 
 ## Browser usage
@@ -233,6 +339,60 @@ This SDK is designed for server-side Node.js. If you attempt to run it in the br
 
 ## Migrating and Changelogs
 
+### Migrating to v0.3.0
+
+This release adds support for API versioning and new transport types.
+
+**Required Changes:**
+
+1. Update your package version:
+   ```bash
+   npm install mcp-registry-spec-sdk@0.3.0
+   ```
+
+2. Replace `getServerByName()` with explicit version methods:
+   ```ts
+   // Old (deprecated)
+   const server = await client.server.getServerByName("my-server");
+
+   // New (recommended)
+   const latest = await client.server.getServerVersion("my-server", "latest");
+   const specific = await client.server.getServerVersion("my-server", "1.0.0");
+   const allVersions = await client.server.listServerVersions("my-server");
+   ```
+
+3. Update `$schema` URLs in server.json files to 2025-12-11 version:
+   ```json
+   {
+     "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/server.schema.json",
+     "name": "my-mcp-server",
+     "description": "My MCP server",
+     "version": "1.0.0"
+   }
+   ```
+
+**Optional Changes:**
+
+1. Use v0.1 stable API in production:
+   ```ts
+   // Old (uses v0 by default)
+   const client = new MCPRegistryClient();
+
+   // New (recommended for production)
+   const client = new MCPRegistryClient(undefined, "v0.1");
+   ```
+
+2. Use new transport types when defining servers.
+
+3. Add icons to server definitions.
+
+**No Action Needed:**
+- All other methods remain unchanged
+- Existing server.json files continue to work
+- Authentication methods unchanged
+
+### Additional Resources
+
 The MCP Registry has evolving APIs and schema definitions. Review official changelogs:
 - API Changelog: https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/CHANGELOG.md
 - Server JSON Changelog: https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/CHANGELOG.md
@@ -243,6 +403,7 @@ Key breaking changes reflected in this SDK:
 - CamelCase field names (e.g., updatedSince, registryType, environmentVariables)
 - Bearer authorization for publish/admin
 - Ping/Health shapes updated
+- v0.3.0: API versioning support, deprecated getServerByName, new transport types, Icon schema
 
 ## License
 
