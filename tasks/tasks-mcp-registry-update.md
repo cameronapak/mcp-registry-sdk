@@ -44,10 +44,10 @@ Update the file after completing each sub-task, not just after completing an ent
    - [x] 4.4 Export new transport schemas as Zod schemas and TypeScript types
    - [x] 4.5 Update `TransportSchema` to be discriminated union of three transport types
 
-- [ ] 5.0 Add URL Template Variables to Remote Transport
-  - [ ] 5.1 Add optional `variables` property to `RemoteSchema`
-  - [ ] 5.2 Define variables as object with string keys and Argument values
-  - [ ] 5.3 Add description for URL template variable substitution pattern (`{curly_braces}`)
+- [x] 5.0 Add URL Template Variables to Remote Transport
+  - [x] 5.1 Add optional `variables` property to `RemoteSchema`
+  - [x] 5.2 Define variables as object with string keys and Argument values
+  - [x] 5.3 Add description for URL template variable substitution pattern (`{curly_braces}`)
 
 - [x] 6.0 Add Icon Schema
   - [x] 6.1 Create `IconSchema` with required `src` field

@@ -116,6 +116,11 @@ export const TransportSchema = z.discriminatedUnion('type', [
   SseTransportSchema,
 ]);
 
+/**
+ * Remote transport with optional URL template variables
+ * URLs can use {variable_name} placeholders that get replaced with values from the variables object
+ * Example: url: "https://api.example.com/{tenant_id}" with variables: { "tenant_id": {...} }
+ */
 export const RemoteSchema = z.discriminatedUnion('type', [
   StreamableHttpTransportSchema.extend({
     variables: z.record(z.string(), ArgumentSchema).optional(),
