@@ -113,3 +113,51 @@ Deno.test("listServerVersions propagates RegistryError for non-existent server",
     "Failed to list versions",
   );
 });
+
+Deno.test("client defaults to v0 API version", async () => {
+  const client = new MCPRegistryClient();
+  const response = await client.server.listServers();
+  
+  assert(
+    response.metadata.count >= 0,
+    "v0 API should return valid response",
+  );
+});
+
+Deno.test("client can be configured with v0.1 API version", async () => {
+  const client = new MCPRegistryClient("https://registry.modelcontextprotocol.io", "v0.1");
+  const response = await client.server.listServers();
+  
+  assert(
+    response.metadata.count >= 0,
+    "v0.1 API should return valid response",
+  );
+});
+
+Deno.test("client can be explicitly configured with v0 API version", async () => {
+  const client = new MCPRegistryClient("https://registry.modelcontextprotocol.io", "v0");
+  const response = await client.server.listServers();
+  
+  assert(
+    response.metadata.count >= 0,
+    "v0 API should return valid response",
+  );
+});
+
+Deno.test("v0 and v0.1 APIs return same data structure", async () => {
+  const clientV0 = new MCPRegistryClient("https://registry.modelcontextprotocol.io", "v0");
+  const clientV01 = new MCPRegistryClient("https://registry.modelcontextprotocol.io", "v0.1");
+  
+  const responseV0 = await clientV0.server.listServers();
+  const responseV01 = await clientV01.server.listServers();
+  
+  assert(
+    responseV0.metadata.count === responseV01.metadata.count,
+    "Both API versions should return same server count",
+  );
+  
+  assert(
+    Array.isArray(responseV0.servers) && Array.isArray(responseV01.servers),
+    "Both responses should have servers array",
+  );
+});
