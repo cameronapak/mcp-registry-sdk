@@ -288,3 +288,18 @@ or by making an API request for it.
    - `fetch` handler is the entry point for HTTP vals
    - Run the Hono app with `export default app.fetch // This is the entry point for HTTP vals`
 
+## Deno Projects
+
+This project uses Deno for testing, even though it's a Node.js library.
+
+### Testing
+- Use `deno test --allow-net --allow-import tests/` to run all tests
+- Requires both `--allow-net` (for API calls to registry) and `--allow-import` (for jsr imports)
+- Tests use jsr:@std/assert assertions (assert, assertEquals, assertRejects, etc.)
+- Test files should be in `tests/` directory with `.test.ts` suffix
+
+### Building
+- Build with `npm run build` (uses tsup to compile TypeScript)
+- Build outputs to `dist/` directory
+- Build is required for npm publishing but not for testing/testing with Deno
+
