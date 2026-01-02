@@ -133,9 +133,9 @@ export const RemoteSchema = z.discriminatedUnion('type', [
 // -------- Repository --------
 export const RepositorySchema = z.object({
   id: z.string().optional(),
-  source: z.string(),
+  source: z.string().optional(),
   subfolder: z.string().optional(),
-  url: z.string(),
+  url: z.string().optional(),
 });
 
 // -------- Package (camelCase) --------
