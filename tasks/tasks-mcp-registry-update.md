@@ -71,19 +71,33 @@ Update the file after completing each sub-task, not just after completing an ent
    - [x] 7.11 Create `MetadataSchema` for pagination metadata
    - [x] 7.12 Export all new schemas as Zod schemas and TypeScript types
    - [x] 7.13 Update existing auth namespace to use new GitHub schemas
+   - [x] 7.14 Make `RepositorySchema` fields optional to match live registry data
+   - [x] 7.1 Create `ResponseMetaSchema` for API response-level metadata (status, publishedAt, updatedAt, isLatest)
+   - [x] 7.2 Create `ServerMetaSchema` for server metadata in responses
+   - [x] 7.3 Create `ServerJSONSchema` as alias for ServerDetail (input format)
+   - [x] 7.4 Create `ServerListResponseSchema` for list operations
+   - [x] 7.5 Create `TransportSchema` as discriminated union of Stdio, StreamableHttp, SSE
+   - [x] 7.6 Create `VersionBodySchema` for version endpoint responses
+   - [x] 7.7 Create `SignatureTokenExchangeInputSchema` for DNS/HTTP signature exchange
+   - [x] 7.8 Create `OIDCTokenExchangeInputBodySchema` for Google OIDC (admin-only)
+   - [x] 7.9 Create `GitHubTokenExchangeInputBodySchema` for GitHub auth
+   - [x] 7.10 Create `GitHubOIDCTokenExchangeInputBodySchema` for GitHub OIDC auth
+   - [x] 7.11 Create `MetadataSchema` for pagination metadata
+   - [x] 7.12 Export all new schemas as Zod schemas and TypeScript types
+   - [x] 7.13 Update existing auth namespace to use new GitHub schemas
 
 - [x] 8.0 Add New Admin Endpoints
    - [x] 8.1 Add `PUT /servers/{serverName}/versions/{version}` endpoint for updates
    - [x] 8.2 Add documentation for `DELETE /servers/{serverName}/versions/{version}` (optional)
    - [x] 8.3 Ensure these endpoints use configured API version (v0 or v0.1)
 
-- [ ] 9.0 Update Documentation
-  - [ ] 9.1 Update README to document new `apiVersion` constructor option
-  - [ ] 9.2 Update all code examples to show both v0 and v0.1 usage patterns
-  - [ ] 9.3 Add migration guide section for deprecated `getServerByName()` method
-  - [ ] 9.4 Update `$schema` URL examples to use 2025-12-11 version
-  - [ ] 9.5 Document new transport types and URL template variables feature
-  - [ ] 9.6 Document new schemas (Icon, transports, response schemas)
+- [x] 9.0 Update Documentation
+  - [x] 9.1 Update README to document new `apiVersion` constructor option
+  - [x] 9.2 Update all code examples to show both v0 and v0.1 usage patterns
+  - [x] 9.3 Add migration guide section for deprecated `getServerByName()` method
+  - [x] 9.4 Update `$schema` URL examples to use 2025-12-11 version
+  - [x] 9.5 Document new transport types and URL template variables feature
+  - [x] 9.6 Document new schemas (Icon, transports, response schemas)
 
  - [ ] 10.0 Version Bump & Release
     - [x] 10.1 Update package.json version from 0.2.0 to 0.3.0 (MAJOR version bump)
@@ -91,8 +105,8 @@ Update the file after completing each sub-task, not just after completing an ent
    - [ ] 10.3 Include detailed migration notes for users
    - [ ] 10.4 Update version references in any remaining documentation
 
-- [ ] 11.0 Testing & Validation
-  - [ ] 11.1 Run existing tests in `tests/` directory to ensure no regressions
+ - [ ] 11.0 Testing & Validation
+   - [x] 11.1 Run existing tests in `tests/` directory to ensure no regressions
   - [ ] 11.2 Add tests for new version methods (getServerVersion, listServerVersions)
   - [ ] 11.3 Add tests for API version configuration (v0 vs v0.1)
   - [ ] 11.4 Test new transport schemas and Icon schema
