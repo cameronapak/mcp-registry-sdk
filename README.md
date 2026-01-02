@@ -169,7 +169,7 @@ const publishedB: ServerResponse = await client.publish.publishServer(
 Edit an existing server version (admin-only). Requires a registry token (JWT).
 
 ```ts
-import type { ServerJSON, ServerResponse } from "mcp-registry-spec-sdkmcp-registry";
+import type { ServerJSON, ServerResponse } from "mcp-registry-spec-sdk";
 
 // Option A: use default token
 const editedA: ServerResponse = await client.admin.editServerVersion(

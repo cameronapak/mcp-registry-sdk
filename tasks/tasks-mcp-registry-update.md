@@ -99,11 +99,11 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 9.5 Document new transport types and URL template variables feature
   - [x] 9.6 Document new schemas (Icon, transports, response schemas)
 
- - [ ] 10.0 Version Bump & Release
-    - [x] 10.1 Update package.json version from 0.2.0 to 0.3.0 (MAJOR version bump)
-   - [x] 10.2 Create CHANGELOG.md entry documenting breaking changes
-   - [ ] 10.3 Include detailed migration notes for users
-   - [ ] 10.4 Update version references in any remaining documentation
+  - [x] 10.0 Version Bump & Release
+     - [x] 10.1 Update package.json version from 0.2.0 to 0.3.0 (MAJOR version bump)
+    - [x] 10.2 Create CHANGELOG.md entry documenting breaking changes
+    - [x] 10.3 Include detailed migration notes for users
+    - [x] 10.4 Update version references in any remaining documentation
 
   - [ ] 11.0 Testing & Validation
     - [x] 11.1 Run existing tests in `tests/` directory to ensure no regressions
