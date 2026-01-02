@@ -33,9 +33,9 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 2.6 Fix test bug: changed name.length to version.length in test assertion
 
 - [x] 3.0 Update Package Schema
-  - [x] 3.1 Make `version` field optional in `PackageSchema` (remove from `required` array)
-  - [x] 3.2 Update Zod schema validation to allow version to be omitted
-  - [ ] 3.3 Verify TypeScript type reflects optional version field
+   - [x] 3.1 Make `version` field optional in `PackageSchema` (remove from `required` array)
+   - [x] 3.2 Update Zod schema validation to allow version to be omitted
+   - [x] 3.3 Verify TypeScript type reflects optional version field
 
 - [ ] 4.0 Update Transport Schemas
   - [ ] 4.1 Create `StdioTransportSchema` with required `type: 'stdio'`
