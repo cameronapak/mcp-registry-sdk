@@ -37,12 +37,12 @@ Update the file after completing each sub-task, not just after completing an ent
    - [x] 3.2 Update Zod schema validation to allow version to be omitted
    - [x] 3.3 Verify TypeScript type reflects optional version field
 
-- [ ] 4.0 Update Transport Schemas
-  - [ ] 4.1 Create `StdioTransportSchema` with required `type: 'stdio'`
-  - [ ] 4.2 Create `StreamableHttpTransportSchema` with required `type`, `url`, optional `headers`
-  - [ ] 4.3 Create `SseTransportSchema` with required `type`, `url`, optional `headers`
-  - [ ] 4.4 Export new transport schemas as Zod schemas and TypeScript types
-  - [ ] 4.5 Update `TransportSchema` to be discriminated union of three transport types
+- [x] 4.0 Update Transport Schemas
+   - [x] 4.1 Create `StdioTransportSchema` with required `type: 'stdio'`
+   - [x] 4.2 Create `StreamableHttpTransportSchema` with required `type`, `url`, optional `headers`
+   - [x] 4.3 Create `SseTransportSchema` with required `type`, `url`, optional `headers`
+   - [x] 4.4 Export new transport schemas as Zod schemas and TypeScript types
+   - [x] 4.5 Update `TransportSchema` to be discriminated union of three transport types
 
 - [ ] 5.0 Add URL Template Variables to Remote Transport
   - [ ] 5.1 Add optional `variables` property to `RemoteSchema`

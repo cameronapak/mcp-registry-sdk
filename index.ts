@@ -588,6 +588,9 @@ export type {
   ServerResponse,
   ServerResponseMeta,
   TokenResponse,
+  StdioTransport,
+  StreamableHttpTransport,
+  SseTransport,
 } from "./types.ts";
 // Re-export ALL Zod schemas as runtime values for consumers
 export {
@@ -598,6 +601,9 @@ export {
   ArgumentSchema,
   InputSchema,
   KeyValueInputSchema,
+  StdioTransportSchema,
+  StreamableHttpTransportSchema,
+  SseTransportSchema,
   TransportSchema,
   RemoteSchema,
   RepositorySchema,

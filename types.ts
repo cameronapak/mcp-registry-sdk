@@ -94,19 +94,36 @@ export const IconSchema = z.object({
 });
 
 // -------- Transports / Remotes --------
-export const TransportSchema = z.object({
-  type: z.string(),
-  url: z.string().optional(),
-  headers: z.array(ArgumentSchema).optional(),
+export const StdioTransportSchema = z.object({
+  type: z.literal('stdio'),
 });
 
-export const RemoteSchema = z.object({
-  /** `transportType` is deprecated. Use `type` */
-  transportType: z.string().optional(),
-  type: z.string(),
+export const StreamableHttpTransportSchema = z.object({
+  type: z.literal('streamable-http'),
   url: z.string(),
   headers: z.array(ArgumentSchema).optional(),
 });
+
+export const SseTransportSchema = z.object({
+  type: z.literal('sse'),
+  url: z.string(),
+  headers: z.array(ArgumentSchema).optional(),
+});
+
+export const TransportSchema = z.discriminatedUnion('type', [
+  StdioTransportSchema,
+  StreamableHttpTransportSchema,
+  SseTransportSchema,
+]);
+
+export const RemoteSchema = z.discriminatedUnion('type', [
+  StreamableHttpTransportSchema.extend({
+    variables: z.record(z.string(), ArgumentSchema).optional(),
+  }),
+  SseTransportSchema.extend({
+    variables: z.record(z.string(), ArgumentSchema).optional(),
+  }),
+]);
 
 // -------- Repository --------
 export const RepositorySchema = z.object({
@@ -253,6 +270,9 @@ export type Argument = z.infer<typeof ArgumentSchema>;
 export type Input = z.infer<typeof InputSchema>;
 export type KeyValueInput = z.infer<typeof KeyValueInputSchema>;
 
+export type StdioTransport = z.infer<typeof StdioTransportSchema>;
+export type StreamableHttpTransport = z.infer<typeof StreamableHttpTransportSchema>;
+export type SseTransport = z.infer<typeof SseTransportSchema>;
 export type Transport = z.infer<typeof TransportSchema>;
 export type Remote = z.infer<typeof RemoteSchema>;
 export type Repository = z.infer<typeof RepositorySchema>;
