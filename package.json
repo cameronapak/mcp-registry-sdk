@@ -1,6 +1,6 @@
 {
   "name": "mcp-registry-spec-sdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A minimal, typed client for the official Model Context Protocol (MCP) Registry API.",
   "type": "module",
   "main": "./dist/index.js",
@@ -40,9 +40,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://www.val.town/x/cameronpak/mcp-registry-spec-sdk"
+    "url": "git+https://github.com/cameronapak/mcp-registry-sdk.git"
   },
-  "homepage": "https://www.val.town/x/cameronpak/mcp-registry-spec-sdk",
+  "homepage": "https://github.com/cameronapak/mcp-registry-sdk",
   "dependencies": {
     "zod": "^3.23.8"
   },

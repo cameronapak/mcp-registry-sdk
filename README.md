@@ -2,8 +2,6 @@
 
 A minimal, typed client for the official Model Context Protocol (MCP) Registry API.
 
-Note: This README documents the current code in this repository. It targets the existing `/v0` endpoints implemented in [index.ts](index.ts:1) and types in [types.ts](types.ts:1).
-
 ## Install
 
 - npm: `npm install mcp-registry-spec-sdk`
@@ -15,39 +13,44 @@ Requires Node.js 18+.
 ## Quick start
 
 ```ts
-// ESM in Node 18+
 import { MCPRegistryClient } from "mcp-registry-spec-sdk";
 
-// Recommended: use v0.1 (stable) API for production
-const client = new MCPRegistryClient(undefined, "v0.1");
+// Default: v0.1 (stable) API
+const client = new MCPRegistryClient();
 
 // Optionally set a default Bearer token for publish/admin
 client.setAuthToken(process.env.MCP_REGISTRY_TOKEN);
 
 // Ping
 const ping = await client.ping.ping();
-// { environment: string, version: string }
 console.log("ping:", ping);
 
 // Health
 const health = await client.health.getHealth();
-// { status: string }
 console.log("health:", health);
 
 // List servers (with optional filters)
-const list = await client.server.listServers({ search: "openai", limit: 10, updatedSince: "2024-01-01T00:00:00Z" });
+const list = await client.server.listServers({
+  search: "openai",
+  limit: 10,
+  updatedSince: "2024-01-01T00:00:00Z",
+  includeDeleted: false,
+});
 console.log("servers:", list.servers.length, "next:", list.metadata.nextCursor);
 
-// Get a server by name (latest) - deprecated, use getServerVersion instead
-const server = await client.server.getServerByName("some-server-name");
-console.log("server:", server.name);
+// Get a specific server version
+const server = await client.server.getServerVersion("org/server-name", "latest");
+console.log("server:", server.server.name);
 ```
 
 **API Versions:**
-- `v0` (default): Development version, may evolve with additive changes
-- `v0.1` (recommended): Stable version, only additive backward-compatible changes
+- `v0.1` (default): Stable version, only additive backward-compatible changes
+- `v0`: Development version, may evolve with breaking changes
 
-Use `v0.1` for production environments. Both versions share the same current endpoints, but `v0.1` is guaranteed to maintain backward compatibility.
+```ts
+// Explicit v0 if needed
+const devClient = new MCPRegistryClient(undefined, "v0");
+```
 
 ## API surface
 
@@ -57,32 +60,20 @@ The client is namespaced by feature:
 - `ping` — Connectivity check
 - `server` — List/get servers (+ version endpoints)
 - `publish` — Publish a server
-- `admin` — Admin-only operations
+- `admin` — Admin-only operations (edit, delete, status updates)
 
 ### Client
 
 ```ts
 import { MCPRegistryClient } from "mcp-registry-spec-sdk";
 
-const client = new MCPRegistryClient("https://registry.modelcontextprotocol.io");
-// or omit the URL to use the default base URL
+const client = new MCPRegistryClient(); // default: official registry, v0.1
+
+// Custom base URL
+const custom = new MCPRegistryClient("https://my-registry.example.com");
 
 // Set or clear a default token used by publish/admin
 client.setAuthToken("YOUR_REGISTRY_JWT"); // omit or pass undefined to clear
-```
-
-### Ping
-
-```ts
-const response = await client.ping.ping();
-// response: { environment: string; version: string }
-```
-
-### Health
-
-```ts
-const response = await client.health.getHealth();
-// response: { status: string }
 ```
 
 ### Servers
@@ -94,110 +85,84 @@ const response = await client.server.listServers({
   cursor: "opaque-cursor",   // optional
   limit: 20,                 // optional
   search: "my query",        // optional
-  updatedSince: "2024-01-01T00:00:00Z", // optional (ISO-8601, camelCase)
+  updatedSince: "2024-01-01T00:00:00Z", // optional (ISO-8601)
   version: "1.0.0",          // optional
+  includeDeleted: true,      // optional — include deleted servers
 });
-
 // response.servers: ServerResponse[]
 // response.metadata: { count: number, nextCursor?: string }
 ```
 
-Get a single server by name (latest):
+Get a specific server version:
 
 ```ts
-const server = await client.server.getServerByName("server-name");
-// server: ServerResponse
+const latest = await client.server.getServerVersion("org/server-name", "latest");
+const specific = await client.server.getServerVersion("org/server-name", "1.2.3");
+
+// With include_deleted
+const deleted = await client.server.getServerVersion("org/server-name", "1.0.0", {
+  includeDeleted: true,
+});
 ```
 
-List versions for a server:
+List all versions for a server:
 
 ```ts
-const versions = await client.server.listServerVersions("server-name");
-// versions: ServerResponse[]
-```
-
-Get a specific version of a server:
-
-```ts
-const v = await client.server.getServerVersion("server-name", "1.2.3");
-// v: ServerResponse
-```
-
-#### Migration Note
-
-The `getServerByName()` method is **deprecated**. Update your code to use explicit version methods:
-
-```ts
-// Old (deprecated) - implicit "latest"
-const server = await client.server.getServerByName("my-server");
-
-// New (recommended) - explicit version
-const latest = await client.server.getServerVersion("my-server", "latest");
-const specific = await client.server.getServerVersion("my-server", "1.0.0");
-const allVersions = await client.server.listServerVersions("my-server");
+const versions = await client.server.listServerVersions("org/server-name");
+// Also supports { includeDeleted: true }
 ```
 
 ### Publish
 
-Publish or update a server entry. Requires a registry token (JWT). You can either:
-- Set a default token once via `client.setAuthToken("...")`, or
-- Pass a token per call (second argument).
+Publish or update a server entry. Requires a registry token (JWT).
 
 ```ts
-import type { ServerJSON, ServerResponse } from "mcp-registry-spec-sdk";
+import type { ServerJSON } from "mcp-registry-spec-sdk";
 
-// Minimal ServerJSON example
 const serverPayload: ServerJSON = {
-  name: "my-mcp-server",
+  name: "org/my-server",
   description: "My MCP server",
   version: "1.0.0",
-  // optional fields: repository, websiteUrl, packages, remotes, _meta (publisher-provided)
 };
 
-// Option A: use default token previously set via client.setAuthToken
-const publishedA: ServerResponse = await client.publish.publishServer(serverPayload);
+// Uses default token set via client.setAuthToken()
+const published = await client.publish.publishServer(serverPayload);
 
-// Option B: pass token per call
-const publishedB: ServerResponse = await client.publish.publishServer(
-  serverPayload,
-  process.env.MCP_REGISTRY_TOKEN // token string without "Bearer " prefix
-);
+// Or pass token per call
+const published2 = await client.publish.publishServer(serverPayload, "my-jwt-token");
 ```
 
 ### Admin
 
-Edit an existing server version (admin-only). Requires a registry token (JWT).
+Edit, delete, and update status of server versions. All require a registry token.
 
 ```ts
-import type { ServerJSON, ServerResponse } from "mcp-registry-spec-sdk";
-
-// Option A: use default token
-const editedA: ServerResponse = await client.admin.editServerVersion(
-  "server-name",
-  "1.0.0",
-  {
-    name: "my-mcp-server",
-    description: "Updated description",
-    version: "1.0.0",
-  } as ServerJSON,
+// Edit a server version
+const edited = await client.admin.editServerVersion(
+  "org/server-name", "1.0.0",
+  { name: "org/server-name", description: "Updated", version: "1.0.0" },
 );
 
-// Option B: pass token per call
-const editedB: ServerResponse = await client.admin.editServerVersion(
-  "server-name",
-  "1.0.0",
-  {
-    name: "my-mcp-server",
-    description: "Updated again",
-    version: "1.0.0",
-  } as ServerJSON,
-  process.env.MCP_REGISTRY_TOKEN
+// Delete a server version (optional endpoint, not on official registry)
+const deleted = await client.admin.deleteServerVersion("org/server-name", "1.0.0");
+
+// Update status of a single version
+const updated = await client.admin.updateVersionStatus(
+  "org/server-name", "1.0.0",
+  { status: "deprecated", statusMessage: "Use v2 instead" },
 );
+
+// Update status of ALL versions
+const allUpdated = await client.admin.updateAllVersionsStatus(
+  "org/server-name",
+  { status: "deprecated", statusMessage: "Project archived" },
+);
+// allUpdated: { updatedCount: number, servers: ServerResponse[] }
 ```
 
 ### Auth (token exchange)
 
-These helpers exchange third-party tokens/signatures for a registry JWT.
+Exchange third-party tokens/signatures for a registry JWT.
 
 ```ts
 // GitHub OAuth access token -> Registry JWT
@@ -232,7 +197,7 @@ const jwt5 = await client.auth.exchangeDNSSignatureForRegistryJWT({
 
 ## Types
 
-All request/response shapes are exported, powered by Zod schemas in [types.ts](types.ts:1). Example:
+All request/response shapes are exported as TypeScript types and Zod schemas.
 
 ```ts
 import type {
@@ -242,24 +207,71 @@ import type {
   ListServersOptions,
   TokenResponse,
   ErrorModel,
+  StatusUpdateRequest,
+  AllVersionsStatusResponse,
+  // Transports
   StdioTransport,
   StreamableHttpTransport,
   SseTransport,
+  // Arguments (discriminated union)
+  Argument,
+  PositionalArgument,
+  NamedArgument,
+  KeyValueInput,
+  Input,
+  InputWithVariables,
+  // Other
   Icon,
+  Repository,
+  Package,
 } from "mcp-registry-spec-sdk";
 ```
 
-### Server JSON Schema
+### Zod Schemas
 
-The SDK uses version `2025-12-11` of the server.json schema. Update your `$schema` references:
+Every type has a corresponding Zod schema exported for runtime validation:
 
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/server.schema.json",
-  "name": "my-mcp-server",
-  "description": "My MCP server",
-  "version": "1.0.0"
-}
+```ts
+import {
+  ServerJSONSchema,
+  ServerResponseSchema,
+  ArgumentSchema,
+  StatusUpdateRequestSchema,
+} from "mcp-registry-spec-sdk";
+
+const parsed = ServerJSONSchema.safeParse(myData);
+if (!parsed.success) console.error(parsed.error);
+```
+
+### Argument Types
+
+Arguments use a discriminated union on the `type` field:
+
+```ts
+import type { PositionalArgument, NamedArgument, KeyValueInput } from "mcp-registry-spec-sdk";
+
+const positional: PositionalArgument = {
+  type: "positional",
+  valueHint: "FILE",
+  description: "Input file path",
+  format: "filepath",
+};
+
+const named: NamedArgument = {
+  type: "named",
+  name: "--port",
+  description: "Port number",
+  format: "number",
+  default: "3000",
+};
+
+// Environment variables and headers use KeyValueInput (requires name)
+const envVar: KeyValueInput = {
+  name: "API_KEY",
+  description: "Your API key",
+  isRequired: true,
+  isSecret: true,
+};
 ```
 
 ### Transport Types
@@ -269,141 +281,113 @@ Servers can use three transport types:
 ```ts
 import type { StdioTransport, StreamableHttpTransport, SseTransport } from "mcp-registry-spec-sdk";
 
-// Stdio transport - local process execution
-const stdio: StdioTransport = { type: 'stdio' };
+const stdio: StdioTransport = { type: "stdio" };
 
-// Streamable HTTP transport - streaming responses
 const http: StreamableHttpTransport = {
-  type: 'streamable-http',
-  url: 'https://api.example.com/mcp',
-  headers: [
-    { name: 'Authorization', value: 'Bearer {token}' }
-  ]
+  type: "streamable-http",
+  url: "https://api.example.com/mcp",
+  headers: [{ name: "Authorization", value: "Bearer {token}" }],
 };
 
-// SSE transport - server-sent events
 const sse: SseTransport = {
-  type: 'sse',
-  url: 'https://api.example.com/mcp',
-  headers: [
-    { name: 'Authorization', value: 'Bearer {token}' }
-  ]
+  type: "sse",
+  url: "https://api.example.com/mcp",
 };
 ```
 
 ### URL Template Variables
 
-Remote transports support URL template variables for multi-tenant deployments:
+Remote transports support URL template variables:
 
 ```ts
-import type { Remote, Argument } from "mcp-registry-spec-sdk";
+import type { Remote } from "mcp-registry-spec-sdk";
 
-const remoteWithVariables: Remote = {
-  type: 'sse',
-  url: 'https://api.{tenant_id}.example.com/mcp',
+const remote: Remote = {
+  type: "sse",
+  url: "https://api.{tenant_id}.example.com/mcp",
   variables: {
     tenant_id: {
-      name: 'tenant_id',
-      description: 'Tenant identifier',
+      description: "Tenant identifier",
       isRequired: true,
-      valueHint: 'your-tenant-id'
-    } as Argument
+      placeholder: "your-tenant-id",
+    },
   },
-  headers: []
 };
 ```
 
-URLs use `{variable_name}` placeholders that get replaced with values from the `variables` object.
-
 ### Icon Schema
-
-Add icons to your server definitions:
 
 ```ts
 import type { Icon } from "mcp-registry-spec-sdk";
 
 const icon: Icon = {
-  src: 'https://example.com/icon.png', // HTTPS URL, max 255 chars
-  mimeType: 'image/png', // optional: 'image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'
-  sizes: ['32x32', '64x64'], // optional: e.g., ['32x32', '64x64'] or ['any']
-  theme: 'light' // optional: 'light' or 'dark'
+  src: "https://example.com/icon.png", // HTTPS URL, max 255 chars
+  mimeType: "image/png",
+  sizes: ["32x32", "64x64"],
+  theme: "light",
 };
 ```
 
 ## Browser usage
 
-This SDK is designed for server-side Node.js. If you attempt to run it in the browser:
-- You will need a fetch polyfill.
-- CORS may prevent direct calls to the MCP Registry API from the browser.
-- It’s recommended to call the API from your server.
+This SDK is designed for server-side Node.js. Browser usage requires a fetch polyfill and may hit CORS restrictions.
 
-## Migrating and Changelogs
+## Migrating to v0.4.0
 
-### Migrating to v0.3.0
+### Breaking Changes
 
-This release adds support for API versioning and new transport types.
-
-**Required Changes:**
-
-1. Update your package version:
-   ```bash
-   npm install mcp-registry-spec-sdk@0.3.0
-   ```
-
-2. Replace `getServerByName()` with explicit version methods:
+1. **Default API version changed** from `v0` to `v0.1`:
    ```ts
-   // Old (deprecated)
-   const server = await client.server.getServerByName("my-server");
-
-   // New (recommended)
-   const latest = await client.server.getServerVersion("my-server", "latest");
-   const specific = await client.server.getServerVersion("my-server", "1.0.0");
-   const allVersions = await client.server.listServerVersions("my-server");
-   ```
-
-3. Update `$schema` URLs in server.json files to 2025-12-11 version:
-   ```json
-   {
-     "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/server.schema.json",
-     "name": "my-mcp-server",
-     "description": "My MCP server",
-     "version": "1.0.0"
-   }
-   ```
-
-**Optional Changes:**
-
-1. Use v0.1 stable API in production:
-   ```ts
-   // Old (uses v0 by default)
+   // v0.3.0: defaulted to v0
    const client = new MCPRegistryClient();
 
-   // New (recommended for production)
-   const client = new MCPRegistryClient(undefined, "v0.1");
+   // v0.4.0: defaults to v0.1 (stable)
+   const client = new MCPRegistryClient(); // now uses v0.1
+
+   // Explicitly use v0 if needed
+   const client = new MCPRegistryClient(undefined, "v0");
    ```
 
-2. Use new transport types when defining servers.
+2. **`getServerByName()` removed** — use `getServerVersion()`:
+   ```ts
+   // Old
+   const server = await client.server.getServerByName("org/server");
 
-3. Add icons to server definitions.
+   // New
+   const server = await client.server.getServerVersion("org/server", "latest");
+   ```
 
-**No Action Needed:**
-- All other methods remain unchanged
-- Existing server.json files continue to work
-- Authentication methods unchanged
+3. **`ArgumentSchema` is now a discriminated union** with `type: "positional"` or `type: "named"`. If you were constructing `Argument` objects without a `type` field, add the appropriate type.
 
-### Additional Resources
+4. **`KeyValueInputSchema` now requires `name`**. Previously it was an alias for `ArgumentSchema`.
 
-The MCP Registry has evolving APIs and schema definitions. Review official changelogs:
-- API Changelog: https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/CHANGELOG.md
-- Server JSON Changelog: https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/CHANGELOG.md
+5. **`Package.identifier` and `Package.transport` are now required** (were optional).
 
-Key breaking changes reflected in this SDK:
-- Endpoints by serverName; versions sub-resources added
-- Publisher input vs API response split: ServerJSON vs ServerResponse
-- CamelCase field names (e.g., updatedSince, registryType, environmentVariables)
-- Bearer authorization for publish/admin
-- Ping/Health shapes updated
-- v0.3.0: API versioning support, deprecated getServerByName, new transport types, Icon schema
+6. **`deleteServerVersion()` now returns `ServerResponse`** instead of `void`.
+
+7. **`ServerJSONSchema` now enforces** `name` pattern (`org/name`), `description` max 100 chars, `version` max 255 chars.
+
+### New Features
+
+- `title` field on servers (optional display name)
+- `placeholder` field on inputs
+- `statusMessage` and `statusChangedAt` on registry metadata
+- `includeDeleted` option on list/get endpoints
+- `updateVersionStatus()` and `updateAllVersionsStatus()` admin methods
+- `StatusUpdateRequestSchema` and `AllVersionsStatusResponseSchema`
+- Proper `PositionalArgumentSchema` and `NamedArgumentSchema`
+- Transport URL pattern validation
+- `fileSha256` hex pattern validation
+
+### Bug Fixes
+
+- `updatedSince` query param now correctly sent as `updated_since` to the API
+
+## Additional Resources
+
+- [API Changelog](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/CHANGELOG.md)
+- [Server JSON Changelog](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/CHANGELOG.md)
+- [OpenAPI Spec](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/openapi.yaml)
 
 ## License
 
