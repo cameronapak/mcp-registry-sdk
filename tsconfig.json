@@ -21,7 +21,6 @@
     "dist",
     "node_modules",
     ".vscode",
-    ".vt",
     "**/*.test.ts"
   ]
 }

@@ -4,9 +4,6 @@
   "compilerOptions": {
     "noImplicitAny": false,
     "strict": false,
-    "types": [
-      "https://www.val.town/types/valtown.d.ts"
-    ],
     "lib": [
       "dom",
       "dom.iterable",
@@ -17,18 +14,6 @@
   },
   "imports": {
     "zod": "npm:zod"
-  },
-  "lint": {
-    "files": {
-      "include": [
-        "deno:/https/esm.town/**/*"
-      ]
-    },
-    "rules": {
-      "exclude": [
-        "no-explicit-any"
-      ]
-    }
   },
   "node_modules_dir": false,
   "experimental": {
