@@ -17,16 +17,16 @@ TypeScript SDK for the official Model Context Protocol Registry API.
 
 ## Testing
 
-- Run Deno tests with:
+- Run Bun tests with:
   ```bash
-  deno test --allow-net --allow-import tests/
+  bun run test
   ```
 - Build with:
   ```bash
-  npm run build
+  bun run build
   ```
 
 ## Notes
 
-- This is a Node package that uses Deno for tests.
+- This is a Node-compatible package that uses Bun for development and tests.
 - Build outputs to `dist/`.
