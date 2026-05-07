@@ -1,3 +1,33 @@
+## 0.4.0 - 2026-04-18
+
+### Breaking Changes
+
+- **Default API version changed to `v0.1`** (stable). Previously defaulted to `v0`. Pass `"v0"` explicitly if needed.
+- **`getServerByName()` removed**. Use `getServerVersion(name, "latest")` instead.
+- **`ArgumentSchema` refactored to discriminated union**: `PositionalArgumentSchema` (`type: "positional"`) and `NamedArgumentSchema` (`type: "named"`). Code constructing `Argument` objects without a `type` field must add one.
+- **`KeyValueInputSchema` now requires `name`**. Previously was an alias for `ArgumentSchema`. Used for env vars and transport headers.
+- **`Package.identifier` and `Package.transport` now required** (were optional).
+- **`deleteServerVersion()` returns `ServerResponse`** instead of `void`.
+- **`ServerJSONSchema` now enforces constraints**: `name` pattern (`^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$`, min 3, max 200), `description` max 100, `version` max 255.
+- **`ServerResponseMetaSchema`**: `official` key no longer optional when `_meta` is present.
+- **Transport URL validation**: `StreamableHttpTransportSchema` and `SseTransportSchema` now validate URL pattern.
+
+### New Features
+
+- **`title` field** on `ServerJSONSchema` and `ServerResponseSchema` (optional, max 100 chars)
+- **`placeholder` field** on `InputSchema` (display hint for UIs)
+- **`statusMessage`** (max 500) and **`statusChangedAt`** on `RegistryExtensionsSchema`
+- **`includeDeleted`** option on `listServers()`, `listServerVersions()`, `getServerVersion()`
+- **Status update endpoints**: `admin.updateVersionStatus()` and `admin.updateAllVersionsStatus()`
+- **New schemas**: `StatusUpdateRequestSchema`, `AllVersionsStatusResponseSchema`, `PositionalArgumentSchema`, `NamedArgumentSchema`, `InputSchema`, `InputWithVariablesSchema`
+- **`fileSha256`** pattern validation (`^[a-f0-9]{64}$`)
+- **`status` field** on `RegistryExtensionsSchema` now an enum: `"active" | "deprecated" | "deleted"`
+- **`format` field** on `InputSchema` now an enum: `"string" | "number" | "boolean" | "filepath"`
+
+### Bug Fixes
+
+- **`updatedSince` query param** now correctly sent as `updated_since` (was sending camelCase)
+
 ## 0.3.0 - 2025-12-11
 
 ### Breaking Changes

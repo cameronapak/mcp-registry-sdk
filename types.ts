@@ -1,23 +1,26 @@
 /**
- * 2025-09-29 Registry alignment (latest only)
- * - server.json (publisher) uses camelCase
- * - API responses separated as ServerResponse with registry-managed _meta
- * - status removed from publisher, present under official metadata in responses
- * - arguments unified (Argument) with isRepeated/valueHint etc.
+ * MCP Registry SDK — Zod schemas aligned to upstream spec 2025-12-01
+ * https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/openapi.yaml
+ *
+ * Also incorporates the official-registry-specific OpenAPI:
+ * https://registry.modelcontextprotocol.io/openapi.yaml
  */
 
 import { z } from "zod";
 
 // -------- Registry-managed metadata (API responses) --------
+// Per latest official spec: status, statusChangedAt, publishedAt, isLatest are required.
 export const RegistryExtensionsSchema = z.object({
-  /** deprecated */
+  /** @deprecated removed from spec 2025-09-29; kept for legacy parsing */
   serverId: z.string().optional(),
-  /** deprecated */
+  /** @deprecated removed from spec 2025-09-29; kept for legacy parsing */
   versionId: z.string().optional(),
   publishedAt: z.string(),
   updatedAt: z.string().optional(),
   isLatest: z.boolean(),
-  status: z.string().optional(),
+  status: z.enum(["active", "deprecated", "deleted"]),
+  statusMessage: z.string().max(500).optional(),
+  statusChangedAt: z.string(),
 });
 
 // -------- Publisher-provided meta wrapper --------
@@ -31,145 +34,166 @@ export const ServerJSONMetaSchema = z
   .partial();
 
 // -------- API response meta wrapper (includes official) --------
-export const ServerResponseMetaSchema = z
-  .object({
-    "io.modelcontextprotocol.registry/official": RegistryExtensionsSchema,
-    "io.modelcontextprotocol.registry/publisher-provided": z
-      .record(z.string(), z.any())
-      .optional(),
-  })
-  .partial();
-
-// -------- Unified Argument schema (runtime/package/env/etc.) --------
-export const ArgumentSchema = z.object({
-  // Common fields
-  name: z.string().optional(),
-  description: z.string().optional(),
-  format: z.string().optional(),
-  default: z.string().optional(),
-  value: z.string().optional(),
-  choices: z.array(z.string()).nullable().optional(),
-
-  // Booleans / hints
-  isRequired: z.boolean().optional(),
-  isSecret: z.boolean().optional(),
-  isRepeated: z.boolean().optional(),
-  valueHint: z.string().optional(),
-
-  // Optional type discriminator (e.g. "positional", "named")
-  type: z.string().optional(),
-
-  // Template variables for complex args (e.g. docker --mount)
-  variables: z
-    .record(
-      z.string(),
-      z.object({
-        description: z.string().optional(),
-        format: z.string().optional(),
-        default: z.string().optional(),
-        isRequired: z.boolean().optional(),
-        valueHint: z.string().optional(),
-        choices: z.array(z.string()).nullable().optional(),
-      }),
-    )
+export const ServerResponseMetaSchema = z.object({
+  "io.modelcontextprotocol.registry/official": RegistryExtensionsSchema,
+  "io.modelcontextprotocol.registry/publisher-provided": z
+    .record(z.string(), z.any())
     .optional(),
 });
 
-// Back-compat aliases (internal use only)
-export const InputSchema = ArgumentSchema;
-export const KeyValueInputSchema = ArgumentSchema;
+// -------- Input (base for all argument types) --------
+export const InputSchema = z.object({
+  description: z.string().optional(),
+  isRequired: z.boolean().optional(),
+  format: z.enum(["string", "number", "boolean", "filepath"]).optional(),
+  value: z.string().optional(),
+  isSecret: z.boolean().optional(),
+  default: z.string().optional(),
+  placeholder: z.string().optional(),
+  choices: z.array(z.string()).nullable().optional(),
+});
+
+// -------- InputWithVariables (Input + template variables) --------
+export const InputWithVariablesSchema = InputSchema.extend({
+  variables: z.record(z.string(), InputSchema).optional(),
+});
+
+// -------- Argument subtypes (discriminated union) --------
+export const PositionalArgumentSchema = InputWithVariablesSchema.extend({
+  type: z.literal("positional"),
+  valueHint: z.string().optional(),
+  isRepeated: z.boolean().optional(),
+});
+
+export const NamedArgumentSchema = InputWithVariablesSchema.extend({
+  type: z.literal("named"),
+  name: z.string(),
+  isRepeated: z.boolean().optional(),
+});
+
+export const ArgumentSchema = z.discriminatedUnion("type", [
+  PositionalArgumentSchema,
+  NamedArgumentSchema,
+]);
+
+// -------- KeyValueInput (env vars, headers — requires name) --------
+export const KeyValueInputSchema = InputWithVariablesSchema.extend({
+  name: z.string(),
+});
 
 // -------- Icon --------
 export const IconSchema = z.object({
   src: z.string().url().max(255),
-  mimeType: z.enum([
-    "image/png",
-    "image/jpeg",
-    "image/jpg",
-    "image/svg+xml",
-    "image/webp"
-  ]).optional(),
-  sizes: z.array(z.string().regex(/^(\d+x\d+|any)$/)).optional(),
+  mimeType: z
+    .enum([
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/svg+xml",
+      "image/webp",
+    ])
+    .optional(),
+  sizes: z
+    .array(z.string().regex(/^(\d+x\d+|any)$/))
+    .optional(),
   theme: z.enum(["light", "dark"]).optional(),
 });
 
-// -------- Transports / Remotes --------
+// -------- Transports --------
+const transportUrlPattern =
+  /^(https?:\/\/[^\s]+|\{[a-zA-Z_][a-zA-Z0-9_]*\}[^\s]*)$/;
+
 export const StdioTransportSchema = z.object({
-  type: z.literal('stdio'),
+  type: z.literal("stdio"),
 });
 
 export const StreamableHttpTransportSchema = z.object({
-  type: z.literal('streamable-http'),
-  url: z.string(),
-  headers: z.array(ArgumentSchema).optional(),
+  type: z.literal("streamable-http"),
+  url: z.string().regex(transportUrlPattern),
+  headers: z.array(KeyValueInputSchema).optional(),
 });
 
 export const SseTransportSchema = z.object({
-  type: z.literal('sse'),
-  url: z.string(),
-  headers: z.array(ArgumentSchema).optional(),
+  type: z.literal("sse"),
+  url: z.string().regex(transportUrlPattern),
+  headers: z.array(KeyValueInputSchema).optional(),
 });
 
-export const TransportSchema = z.discriminatedUnion('type', [
+export const TransportSchema = z.discriminatedUnion("type", [
   StdioTransportSchema,
   StreamableHttpTransportSchema,
   SseTransportSchema,
 ]);
 
 /**
- * Remote transport with optional URL template variables
- * URLs can use {variable_name} placeholders that get replaced with values from the variables object
- * Example: url: "https://api.example.com/{tenant_id}" with variables: { "tenant_id": {...} }
+ * Remote transport with optional URL template variables.
+ * URLs can use {variable_name} placeholders replaced from the variables object.
  */
-export const RemoteSchema = z.discriminatedUnion('type', [
+export const RemoteSchema = z.discriminatedUnion("type", [
   StreamableHttpTransportSchema.extend({
-    variables: z.record(z.string(), ArgumentSchema).optional(),
+    variables: z.record(z.string(), InputSchema).optional(),
   }),
   SseTransportSchema.extend({
-    variables: z.record(z.string(), ArgumentSchema).optional(),
+    variables: z.record(z.string(), InputSchema).optional(),
   }),
 ]);
 
 // -------- Repository --------
+// Permissive for parsing API responses (legacy servers may omit url/source).
+// The API enforces url+source as required on publish.
 export const RepositorySchema = z.object({
-  id: z.string().optional(),
+  url: z.string().url().optional(),
   source: z.string().optional(),
+  id: z.string().optional(),
   subfolder: z.string().optional(),
-  url: z.string().optional(),
 });
 
-// -------- Package (camelCase) --------
+// -------- Package --------
 export const PackageSchema = z.object({
-  registryType: z.string(), // e.g. "npm", "docker"
-  registryBaseUrl: z.string().optional(),
-  identifier: z.string().optional(),
-  fileSha256: z.string().optional(),
+  registryType: z.string().min(1),
+  identifier: z.string().min(1),
+  transport: TransportSchema,
+
+  registryBaseUrl: z.string().url().optional(),
+  version: z
+    .string()
+    .min(1)
+    .max(255)
+    .refine((v) => v !== "latest", {
+      message: "Package version must be a specific version, not 'latest'",
+    })
+    .optional(),
+  fileSha256: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
 
   name: z.string().optional(),
-  version: z.string().optional(),
-
   runtimeHint: z.string().optional(),
   runtimeArguments: z.array(ArgumentSchema).nullable().optional(),
   packageArguments: z.array(ArgumentSchema).nullable().optional(),
-  environmentVariables: z.array(ArgumentSchema).nullable().optional(),
-
-  transport: TransportSchema.optional(),
+  environmentVariables: z.array(KeyValueInputSchema).nullable().optional(),
 });
 
 // -------- Server JSON (publisher input) --------
+// Per official spec, $schema is required for ServerJSON publish payloads.
 export const ServerJSONSchema = z.object({
-  $schema: z.string().optional(),
-  name: z.string(),
-  description: z.string(),
-  version: z.string(),
+  $schema: z.string().min(1),
+  name: z
+    .string()
+    .min(3)
+    .max(200)
+    .regex(/^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/),
+  title: z.string().min(1).max(100).optional(),
+  description: z.string().min(1).max(100),
+  version: z.string().max(255),
   repository: RepositorySchema.optional(),
-  websiteUrl: z.string().optional(),
+  websiteUrl: z.string().url().optional(),
   icons: z.array(IconSchema).optional(),
 
   packages: z.array(PackageSchema).nullable().optional(),
   remotes: z.array(RemoteSchema).nullable().optional(),
 
-  // Publisher-provided meta only; official meta is registry-managed and not accepted here
   _meta: ServerJSONMetaSchema.optional(),
 });
 
@@ -178,9 +202,10 @@ export const ServerResponseSchema = z.object({
   server: z.object({
     $schema: z.string().optional(),
     name: z.string(),
+    title: z.string().optional(),
     description: z.string(),
-    repository: RepositorySchema.optional(),
     version: z.string(),
+    repository: RepositorySchema.optional(),
     websiteUrl: z.string().url().optional(),
     icons: z.array(IconSchema).optional(),
     packages: z.array(PackageSchema).nullable().optional(),
@@ -192,7 +217,7 @@ export const ServerResponseSchema = z.object({
 
 // -------- List / pagination --------
 export const MetadataSchema = z.object({
-  nextCursor: z.string().optional(),
+  nextCursor: z.string().nullable().optional(),
   count: z.number(),
 });
 
@@ -201,16 +226,34 @@ export const ServerListResponseSchema = z.object({
   metadata: MetadataSchema,
 });
 
-// -------- ListServers options (camelCase) --------
+// -------- ListServers options --------
 export const ListServersOptionsSchema = z.object({
   cursor: z.string().optional(),
   limit: z.number().optional(),
   search: z.string().optional(),
   updatedSince: z.string().optional(),
   version: z.string().optional(),
+  includeDeleted: z.boolean().optional(),
 });
 
-// -------- Auth exchange bodies / tokens (unchanged) --------
+// -------- Status update --------
+// Per official spec, statusMessage is not allowed when status is "active".
+export const StatusUpdateRequestSchema = z
+  .object({
+    status: z.enum(["active", "deprecated", "deleted"]),
+    statusMessage: z.string().max(500).optional(),
+  })
+  .refine((d) => !(d.status === "active" && d.statusMessage !== undefined), {
+    message: "statusMessage is not allowed when status is 'active'",
+    path: ["statusMessage"],
+  });
+
+export const AllVersionsStatusResponseSchema = z.object({
+  updatedCount: z.number(),
+  servers: z.array(ServerResponseSchema),
+});
+
+// -------- Auth exchange bodies / tokens --------
 export const GitHubTokenExchangeInputBodySchema = z.object({
   github_token: z.string(),
 });
@@ -249,17 +292,34 @@ export const SignatureTokenExchangeInputSchema = z.object({
 // -------- Health / Ping --------
 export const HealthBodySchema = z.object({
   status: z.string(),
+  /** GitHub OAuth App Client ID (official registry only). */
+  github_client_id: z.string().optional(),
 });
 
+// Per official spec, /ping returns { pong: boolean }.
+// Previously returned { environment, version }; that data moved to /version.
 export const PingBodySchema = z.object({
-  environment: z.string(),
-  version: z.string(),
+  pong: z.boolean(),
 });
 
 export const VersionBodySchema = z.object({
   version: z.string(),
   git_commit: z.string(),
   build_time: z.string(),
+});
+
+// -------- Validation --------
+export const ValidationIssueSchema = z.object({
+  type: z.string(),
+  path: z.string(),
+  message: z.string(),
+  severity: z.string(),
+  reference: z.string(),
+});
+
+export const ValidationResultSchema = z.object({
+  valid: z.boolean(),
+  issues: z.array(ValidationIssueSchema).nullable(),
 });
 
 // -------- Errors --------
@@ -278,20 +338,29 @@ export const ErrorModelSchema = z.object({
   type: z.string().optional(),
 });
 
-// -------- TypeScript exports --------
+// -------- TypeScript type exports --------
 export type RegistryExtensions = z.infer<typeof RegistryExtensionsSchema>;
 export type ServerJSONMeta = z.infer<typeof ServerJSONMetaSchema>;
 export type ServerResponseMeta = z.infer<typeof ServerResponseMetaSchema>;
 
-export type Argument = z.infer<typeof ArgumentSchema>;
 export type Input = z.infer<typeof InputSchema>;
+export type InputWithVariables = z.infer<typeof InputWithVariablesSchema>;
+export type PositionalArgument = z.infer<typeof PositionalArgumentSchema>;
+export type NamedArgument = z.infer<typeof NamedArgumentSchema>;
+export type Argument = z.infer<typeof ArgumentSchema>;
 export type KeyValueInput = z.infer<typeof KeyValueInputSchema>;
 
 export type StdioTransport = z.infer<typeof StdioTransportSchema>;
-export type StreamableHttpTransport = z.infer<typeof StreamableHttpTransportSchema>;
+export type StreamableHttpTransport = z.infer<
+  typeof StreamableHttpTransportSchema
+>;
 export type SseTransport = z.infer<typeof SseTransportSchema>;
 export type Transport = z.infer<typeof TransportSchema>;
+/** Alias for {@link Transport} — matches upstream `LocalTransport` schema name. */
+export type LocalTransport = Transport;
 export type Remote = z.infer<typeof RemoteSchema>;
+/** Alias for {@link Remote} — matches upstream `RemoteTransport` schema name. */
+export type RemoteTransport = Remote;
 export type Repository = z.infer<typeof RepositorySchema>;
 export type Package = z.infer<typeof PackageSchema>;
 
@@ -303,6 +372,11 @@ export type Icon = z.infer<typeof IconSchema>;
 export type Metadata = z.infer<typeof MetadataSchema>;
 export type ServerListResponse = z.infer<typeof ServerListResponseSchema>;
 export type ListServersOptions = z.infer<typeof ListServersOptionsSchema>;
+
+export type StatusUpdateRequest = z.infer<typeof StatusUpdateRequestSchema>;
+export type AllVersionsStatusResponse = z.infer<
+  typeof AllVersionsStatusResponseSchema
+>;
 
 export type GitHubTokenExchangeInputBody = z.infer<
   typeof GitHubTokenExchangeInputBodySchema
@@ -327,6 +401,9 @@ export type SignatureTokenExchangeInput = z.infer<
 export type HealthBody = z.infer<typeof HealthBodySchema>;
 export type PingBody = z.infer<typeof PingBodySchema>;
 export type VersionBody = z.infer<typeof VersionBodySchema>;
+
+export type ValidationIssue = z.infer<typeof ValidationIssueSchema>;
+export type ValidationResult = z.infer<typeof ValidationResultSchema>;
 
 export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;
 export type ErrorModel = z.infer<typeof ErrorModelSchema>;

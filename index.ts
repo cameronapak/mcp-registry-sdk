@@ -1,4 +1,5 @@
 import type {
+  AllVersionsStatusResponse,
   DNSTokenExchangeInputBody,
   ErrorModel,
   GitHubOIDCTokenExchangeInputBody,
@@ -12,7 +13,9 @@ import type {
   ServerResponse,
   ServerListResponse,
   SignatureTokenExchangeInput,
+  StatusUpdateRequest,
   TokenResponse,
+  ValidationResult,
   VersionBody,
 } from "./types.ts";
 
@@ -31,7 +34,9 @@ export class RegistryError extends Error {
   }
 }
 
-async function parseErrorModel(response: Response): Promise<ErrorModel | undefined> {
+async function parseErrorModel(
+  response: Response,
+): Promise<ErrorModel | undefined> {
   const text = await response.text();
   try {
     return JSON.parse(text);
@@ -63,20 +68,18 @@ export class AuthNamespace {
    * Exchange GitHub OAuth access token for Registry JWT
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-github-token}
    */
-  async exchangeGitHubOAuthAccessTokenForRegistryJWT(
-    { github_token }: GitHubTokenExchangeInputBody,
-  ): Promise<TokenResponse> {
+  async exchangeGitHubOAuthAccessTokenForRegistryJWT({
+    github_token,
+  }: GitHubTokenExchangeInputBody): Promise<TokenResponse> {
     const url = `${this.baseUrl}/${this.apiVersion}/auth/github-at`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        github_token: github_token,
-      }),
+      body: JSON.stringify({ github_token }),
     });
 
     if (!response.ok) {
@@ -94,20 +97,18 @@ export class AuthNamespace {
    * Exchange GitHub OIDC token for Registry JWT
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-github-oidc-token}
    */
-  async exchangeGitHubOIDCTokenForRegistryJWT(
-    { oidc_token }: GitHubOIDCTokenExchangeInputBody,
-  ): Promise<TokenResponse> {
+  async exchangeGitHubOIDCTokenForRegistryJWT({
+    oidc_token,
+  }: GitHubOIDCTokenExchangeInputBody): Promise<TokenResponse> {
     const url = `${this.baseUrl}/${this.apiVersion}/auth/github-oidc`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        oidc_token,
-      }),
+      body: JSON.stringify({ oidc_token }),
     });
 
     if (!response.ok) {
@@ -133,7 +134,7 @@ export class AuthNamespace {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(signatureTokenExchangeInput),
@@ -154,20 +155,18 @@ export class AuthNamespace {
    * Exchange OIDC ID token for Registry JWT
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-oidc-token}
    */
-  async exchangeOIDCIDTokenForRegistryJWT(
-    { oidc_token }: OIDCTokenExchangeInputBody,
-  ): Promise<TokenResponse> {
+  async exchangeOIDCIDTokenForRegistryJWT({
+    oidc_token,
+  }: OIDCTokenExchangeInputBody): Promise<TokenResponse> {
     const url = `${this.baseUrl}/${this.apiVersion}/auth/oidc`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        oidc_token: oidc_token,
-      }),
+      body: JSON.stringify({ oidc_token }),
     });
 
     if (!response.ok) {
@@ -193,7 +192,7 @@ export class AuthNamespace {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(signatureTokenExchangeInput),
@@ -233,7 +232,7 @@ export class HealthNamespace {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
       },
     });
 
@@ -271,7 +270,7 @@ export class PingNamespace {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
       },
     });
 
@@ -309,7 +308,7 @@ export class VersionNamespace {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
       },
     });
 
@@ -350,9 +349,12 @@ export class ServerNamespace {
     if (options.limit) params.append("limit", options.limit.toString());
     if (options.search) params.append("search", options.search);
     if (options.updatedSince) {
-      params.append("updatedSince", options.updatedSince);
+      params.append("updated_since", options.updatedSince);
     }
     if (options.version) params.append("version", options.version);
+    if (options.includeDeleted !== undefined) {
+      params.append("include_deleted", String(options.includeDeleted));
+    }
 
     const url = `${this.baseUrl}/${this.apiVersion}/servers${
       params.toString() ? `?${params.toString()}` : ""
@@ -360,7 +362,7 @@ export class ServerNamespace {
 
     const response = await fetch(url, {
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
       },
     });
 
@@ -376,42 +378,23 @@ export class ServerNamespace {
   }
 
   /**
-   * Get server by name (latest or requested version via dedicated endpoints)
-   * {@see https://registry.modelcontextprotocol.io/docs#/operations/get-server}
-   * @deprecated Use getServerVersion(name, 'latest') instead
-   */
-  async getServerByName(serverName: string): Promise<ServerResponse> {
-    console.warn(
-      'getServerByName() is deprecated. Use getServerVersion(name, "latest") instead.',
-    );
-    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/latest`;
-
-    const response = await fetch(url, {
-      headers: {
-        "Accept": "application/json, application/problem+json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorModel = await parseErrorModel(response);
-      throw new RegistryError(
-        `Failed to get server ${serverName}: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
-        errorModel,
-      );
-    }
-
-    return await response.json();
-  }
-
-  /**
    * List all versions for a server by name
    */
-  async listServerVersions(serverName: string): Promise<ServerListResponse> {
-    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions`;
+  async listServerVersions(
+    serverName: string,
+    options?: { includeDeleted?: boolean },
+  ): Promise<ServerListResponse> {
+    const params = new URLSearchParams();
+    if (options?.includeDeleted !== undefined) {
+      params.append("include_deleted", String(options.includeDeleted));
+    }
+
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions${qs}`;
 
     const response = await fetch(url, {
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
       },
     });
 
@@ -429,12 +412,22 @@ export class ServerNamespace {
   /**
    * Get a specific version for a server by name
    */
-  async getServerVersion(serverName: string, version: string): Promise<ServerResponse> {
-    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
+  async getServerVersion(
+    serverName: string,
+    version: string,
+    options?: { includeDeleted?: boolean },
+  ): Promise<ServerResponse> {
+    const params = new URLSearchParams();
+    if (options?.includeDeleted !== undefined) {
+      params.append("include_deleted", String(options.includeDeleted));
+    }
+
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}${qs}`;
 
     const response = await fetch(url, {
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
       },
     });
 
@@ -458,7 +451,11 @@ export class AdminNamespace {
   private apiVersion: string;
   private getAuthToken?: () => string | undefined;
 
-  constructor(baseUrl: string, apiVersion: string, getAuthToken?: () => string | undefined) {
+  constructor(
+    baseUrl: string,
+    apiVersion: string,
+    getAuthToken?: () => string | undefined,
+  ) {
     this.baseUrl = baseUrl;
     this.apiVersion = apiVersion;
     this.getAuthToken = getAuthToken;
@@ -484,9 +481,9 @@ export class AdminNamespace {
     const response = await fetch(url, {
       method: "PUT",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(server),
     });
@@ -503,27 +500,29 @@ export class AdminNamespace {
   }
 
   /**
-   * Delete a specific server version (admin only)
-   * Note: Optional endpoint in generic API spec, not implemented by official registry
+   * Delete a specific server version (admin only).
+   * Optional endpoint in generic API spec, not implemented by official registry.
    * {@see https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/generic-registry-api.md}
    */
   async deleteServerVersion(
     serverName: string,
     version: string,
     registryToken?: string,
-  ): Promise<void> {
+  ): Promise<ServerResponse> {
     const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
 
     const token = registryToken ?? this.getAuthToken?.();
     if (!token) {
-      throw new RegistryError("Missing registry token for deleteServerVersion");
+      throw new RegistryError(
+        "Missing registry token for deleteServerVersion",
+      );
     }
 
     const response = await fetch(url, {
       method: "DELETE",
       headers: {
-        "Accept": "application/json, application/problem+json",
-        "Authorization": `Bearer ${token}`,
+        Accept: "application/json, application/problem+json",
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -534,6 +533,87 @@ export class AdminNamespace {
         errorModel,
       );
     }
+
+    return await response.json();
+  }
+
+  /**
+   * Update the status of a specific server version.
+   * {@see https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/generic-registry-api.md}
+   */
+  async updateVersionStatus(
+    serverName: string,
+    version: string,
+    request: StatusUpdateRequest,
+    registryToken?: string,
+  ): Promise<ServerResponse> {
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}/status`;
+
+    const token = registryToken ?? this.getAuthToken?.();
+    if (!token) {
+      throw new RegistryError(
+        "Missing registry token for updateVersionStatus",
+      );
+    }
+
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json, application/problem+json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorModel = await parseErrorModel(response);
+      throw new RegistryError(
+        `Failed to update version status: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
+        errorModel,
+      );
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Update the status of all versions of a server.
+   * {@see https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/generic-registry-api.md}
+   */
+  async updateAllVersionsStatus(
+    serverName: string,
+    request: StatusUpdateRequest,
+    registryToken?: string,
+  ): Promise<AllVersionsStatusResponse> {
+    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/status`;
+
+    const token = registryToken ?? this.getAuthToken?.();
+    if (!token) {
+      throw new RegistryError(
+        "Missing registry token for updateAllVersionsStatus",
+      );
+    }
+
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json, application/problem+json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorModel = await parseErrorModel(response);
+      throw new RegistryError(
+        `Failed to update all versions status: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
+        errorModel,
+      );
+    }
+
+    return await response.json();
   }
 }
 
@@ -545,7 +625,11 @@ export class PublishNamespace {
   private apiVersion: string;
   private getAuthToken?: () => string | undefined;
 
-  constructor(baseUrl: string, apiVersion: string, getAuthToken?: () => string | undefined) {
+  constructor(
+    baseUrl: string,
+    apiVersion: string,
+    getAuthToken?: () => string | undefined,
+  ) {
     this.baseUrl = baseUrl;
     this.apiVersion = apiVersion;
     this.getAuthToken = getAuthToken;
@@ -569,9 +653,9 @@ export class PublishNamespace {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(server),
     });
@@ -586,15 +670,43 @@ export class PublishNamespace {
 
     return await response.json();
   }
+
+  /**
+   * Validate a server.json file without publishing it to the registry.
+   * Does not require authentication.
+   * {@see https://registry.modelcontextprotocol.io/docs#/operations/validate-server}
+   */
+  async validateServer(server: ServerJSON): Promise<ValidationResult> {
+    const url = `${this.baseUrl}/${this.apiVersion}/validate`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json, application/problem+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(server),
+    });
+
+    if (!response.ok) {
+      const errorModel = await parseErrorModel(response);
+      throw new RegistryError(
+        `Failed to validate server: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
+        errorModel,
+      );
+    }
+
+    return await response.json();
+  }
 }
 
 /**
- * MCP Registry SDK - Simple class-based client for the official MCP Registry API
+ * MCP Registry SDK — Simple class-based client for the official MCP Registry API
  * {@see https://registry.modelcontextprotocol.io/docs}
- * 
+ *
  * @param baseUrl - Registry base URL (default: https://registry.modelcontextprotocol.io)
- * @param apiVersion - API version: 'v0' (development, evolving) or 'v0.1' (stable, backward-compatible only)
- *                     Default: 'v0' for backward compatibility. Use 'v0.1' for production.
+ * @param apiVersion - API version: 'v0' (development, evolving) or 'v0.1' (stable, backward-compatible only).
+ *                     Default: 'v0.1' (stable).
  */
 export class MCPRegistryClient {
   private baseUrl: string;
@@ -607,12 +719,11 @@ export class MCPRegistryClient {
   public publish: PublishNamespace;
   public admin: AdminNamespace;
 
-  // Optional default token used by publish/admin when not provided per-call
   private defaultAuthToken?: string;
 
   constructor(
     baseUrl: string = "https://registry.modelcontextprotocol.io",
-    apiVersion: "v0" | "v0.1" = "v0",
+    apiVersion: "v0" | "v0.1" = "v0.1",
   ) {
     this.baseUrl = baseUrl;
     this.apiVersion = apiVersion;
@@ -621,8 +732,16 @@ export class MCPRegistryClient {
     this.health = new HealthNamespace(this.baseUrl, this.apiVersion);
     this.ping = new PingNamespace(this.baseUrl, this.apiVersion);
     this.version = new VersionNamespace(this.baseUrl, this.apiVersion);
-    this.publish = new PublishNamespace(this.baseUrl, this.apiVersion, () => this.defaultAuthToken);
-    this.admin = new AdminNamespace(this.baseUrl, this.apiVersion, () => this.defaultAuthToken);
+    this.publish = new PublishNamespace(
+      this.baseUrl,
+      this.apiVersion,
+      () => this.defaultAuthToken,
+    );
+    this.admin = new AdminNamespace(
+      this.baseUrl,
+      this.apiVersion,
+      () => this.defaultAuthToken,
+    );
   }
 
   /**
@@ -634,7 +753,9 @@ export class MCPRegistryClient {
   }
 }
 
+// -------- Re-export types --------
 export type {
+  AllVersionsStatusResponse,
   Argument,
   DNSTokenExchangeInputBody,
   ErrorDetail,
@@ -644,13 +765,20 @@ export type {
   HealthBody,
   HTTPTokenExchangeInputBody,
   Icon,
+  Input,
+  InputWithVariables,
+  KeyValueInput,
   ListServersOptions,
+  LocalTransport,
   Metadata,
+  NamedArgument,
   OIDCTokenExchangeInputBody,
   Package,
   PingBody,
+  PositionalArgument,
   RegistryExtensions,
   Remote,
+  RemoteTransport,
   Repository,
   ServerJSON,
   ServerJSONMeta,
@@ -658,43 +786,61 @@ export type {
   ServerResponse,
   ServerResponseMeta,
   SignatureTokenExchangeInput,
-  TokenResponse,
-  VersionBody,
+  SseTransport,
+  StatusUpdateRequest,
   StdioTransport,
   StreamableHttpTransport,
-  SseTransport,
+  TokenResponse,
+  Transport,
+  ValidationIssue,
+  ValidationResult,
+  VersionBody,
 } from "./types.ts";
-// Re-export ALL Zod schemas as runtime values for consumers
+
+// -------- Re-export Zod schemas --------
 export {
-  IconSchema,
-  RegistryExtensionsSchema,
-  ServerJSONMetaSchema,
-  ServerResponseMetaSchema,
+  AllVersionsStatusResponseSchema,
   ArgumentSchema,
-  InputSchema,
-  KeyValueInputSchema,
-  StdioTransportSchema,
-  StreamableHttpTransportSchema,
-  SseTransportSchema,
-  TransportSchema,
-  RemoteSchema,
-  RepositorySchema,
-  PackageSchema,
-  ServerJSONSchema,
-  ServerResponseSchema,
-  MetadataSchema,
-  ServerListResponseSchema,
-  ListServersOptionsSchema,
-  GitHubTokenExchangeInputBodySchema,
-  TokenResponseSchema,
-  GitHubOIDCTokenExchangeInputBodySchema,
-  HTTPTokenExchangeInputBodySchema,
-  OIDCTokenExchangeInputBodySchema,
-  SignatureTokenExchangeInputSchema,
   DNSTokenExchangeInputBodySchema,
-  HealthBodySchema,
-  PingBodySchema,
-  VersionBodySchema,
   ErrorDetailSchema,
   ErrorModelSchema,
+  GitHubOIDCTokenExchangeInputBodySchema,
+  GitHubTokenExchangeInputBodySchema,
+  HealthBodySchema,
+  HTTPTokenExchangeInputBodySchema,
+  IconSchema,
+  InputSchema,
+  InputWithVariablesSchema,
+  KeyValueInputSchema,
+  ListServersOptionsSchema,
+  MetadataSchema,
+  NamedArgumentSchema,
+  OIDCTokenExchangeInputBodySchema,
+  PackageSchema,
+  PingBodySchema,
+  PositionalArgumentSchema,
+  RegistryExtensionsSchema,
+  RemoteSchema,
+  RepositorySchema,
+  ServerJSONMetaSchema,
+  ServerJSONSchema,
+  ServerListResponseSchema,
+  ServerResponseMetaSchema,
+  ServerResponseSchema,
+  SignatureTokenExchangeInputSchema,
+  SseTransportSchema,
+  StatusUpdateRequestSchema,
+  StdioTransportSchema,
+  StreamableHttpTransportSchema,
+  TokenResponseSchema,
+  TransportSchema,
+  ValidationIssueSchema,
+  ValidationResultSchema,
+  VersionBodySchema,
+} from "./types.ts";
+
+// Aliases matching upstream generic-spec naming.
+export {
+  TransportSchema as LocalTransportSchema,
+  RemoteSchema as RemoteTransportSchema,
 } from "./types.ts";
