@@ -4,11 +4,20 @@ A minimal, typed client for the official Model Context Protocol (MCP) Registry A
 
 ## Install
 
+- bun: `bun add mcp-registry-spec-sdk`
 - npm: `npm install mcp-registry-spec-sdk`
 - pnpm: `pnpm add mcp-registry-spec-sdk`
 - yarn: `yarn add mcp-registry-spec-sdk`
 
-Requires Node.js 18+.
+Requires Bun 1.3.2+ for development. Published package supports Node.js 18+.
+
+## Development
+
+```sh
+bun install
+bun run test
+bun run build
+```
 
 ## Quick start
 
@@ -331,7 +340,7 @@ const icon: Icon = {
 
 ## Browser usage
 
-This SDK is designed for server-side Node.js. Browser usage requires a fetch polyfill and may hit CORS restrictions.
+This SDK is designed for server-side Bun or Node.js. Browser usage requires a fetch polyfill and may hit CORS restrictions.
 
 ## Spec alignment
 
