@@ -15,6 +15,7 @@ import type {
   SignatureTokenExchangeInput,
   StatusUpdateRequest,
   TokenResponse,
+  ValidationResult,
   VersionBody,
 } from "./types.ts";
 
@@ -669,6 +670,34 @@ export class PublishNamespace {
 
     return await response.json();
   }
+
+  /**
+   * Validate a server.json file without publishing it to the registry.
+   * Does not require authentication.
+   * {@see https://registry.modelcontextprotocol.io/docs#/operations/validate-server}
+   */
+  async validateServer(server: ServerJSON): Promise<ValidationResult> {
+    const url = `${this.baseUrl}/${this.apiVersion}/validate`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json, application/problem+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(server),
+    });
+
+    if (!response.ok) {
+      const errorModel = await parseErrorModel(response);
+      throw new RegistryError(
+        `Failed to validate server: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
+        errorModel,
+      );
+    }
+
+    return await response.json();
+  }
 }
 
 /**
@@ -740,6 +769,7 @@ export type {
   InputWithVariables,
   KeyValueInput,
   ListServersOptions,
+  LocalTransport,
   Metadata,
   NamedArgument,
   OIDCTokenExchangeInputBody,
@@ -748,6 +778,7 @@ export type {
   PositionalArgument,
   RegistryExtensions,
   Remote,
+  RemoteTransport,
   Repository,
   ServerJSON,
   ServerJSONMeta,
@@ -761,6 +792,8 @@ export type {
   StreamableHttpTransport,
   TokenResponse,
   Transport,
+  ValidationIssue,
+  ValidationResult,
   VersionBody,
 } from "./types.ts";
 
@@ -801,5 +834,13 @@ export {
   StreamableHttpTransportSchema,
   TokenResponseSchema,
   TransportSchema,
+  ValidationIssueSchema,
+  ValidationResultSchema,
   VersionBodySchema,
+} from "./types.ts";
+
+// Aliases matching upstream generic-spec naming.
+export {
+  TransportSchema as LocalTransportSchema,
+  RemoteSchema as RemoteTransportSchema,
 } from "./types.ts";

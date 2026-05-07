@@ -1,22 +1,26 @@
 /**
  * MCP Registry SDK — Zod schemas aligned to upstream spec 2025-12-01
  * https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/openapi.yaml
+ *
+ * Also incorporates the official-registry-specific OpenAPI:
+ * https://registry.modelcontextprotocol.io/openapi.yaml
  */
 
 import { z } from "zod";
 
 // -------- Registry-managed metadata (API responses) --------
+// Per latest official spec: status, statusChangedAt, publishedAt, isLatest are required.
 export const RegistryExtensionsSchema = z.object({
-  /** @deprecated use server name instead */
+  /** @deprecated removed from spec 2025-09-29; kept for legacy parsing */
   serverId: z.string().optional(),
-  /** @deprecated use server version instead */
+  /** @deprecated removed from spec 2025-09-29; kept for legacy parsing */
   versionId: z.string().optional(),
   publishedAt: z.string(),
   updatedAt: z.string().optional(),
   isLatest: z.boolean(),
-  status: z.enum(["active", "deprecated", "deleted"]).optional(),
+  status: z.enum(["active", "deprecated", "deleted"]),
   statusMessage: z.string().max(500).optional(),
-  statusChangedAt: z.string().optional(),
+  statusChangedAt: z.string(),
 });
 
 // -------- Publisher-provided meta wrapper --------
@@ -146,12 +150,19 @@ export const RepositorySchema = z.object({
 
 // -------- Package --------
 export const PackageSchema = z.object({
-  registryType: z.string(),
-  identifier: z.string(),
+  registryType: z.string().min(1),
+  identifier: z.string().min(1),
   transport: TransportSchema,
 
   registryBaseUrl: z.string().url().optional(),
-  version: z.string().max(255).optional(),
+  version: z
+    .string()
+    .min(1)
+    .max(255)
+    .refine((v) => v !== "latest", {
+      message: "Package version must be a specific version, not 'latest'",
+    })
+    .optional(),
   fileSha256: z
     .string()
     .regex(/^[a-f0-9]{64}$/)
@@ -165,8 +176,9 @@ export const PackageSchema = z.object({
 });
 
 // -------- Server JSON (publisher input) --------
+// Per official spec, $schema is required for ServerJSON publish payloads.
 export const ServerJSONSchema = z.object({
-  $schema: z.string().optional(),
+  $schema: z.string().min(1),
   name: z
     .string()
     .min(3)
@@ -225,10 +237,16 @@ export const ListServersOptionsSchema = z.object({
 });
 
 // -------- Status update --------
-export const StatusUpdateRequestSchema = z.object({
-  status: z.enum(["active", "deprecated", "deleted"]),
-  statusMessage: z.string().max(500).optional(),
-});
+// Per official spec, statusMessage is not allowed when status is "active".
+export const StatusUpdateRequestSchema = z
+  .object({
+    status: z.enum(["active", "deprecated", "deleted"]),
+    statusMessage: z.string().max(500).optional(),
+  })
+  .refine((d) => !(d.status === "active" && d.statusMessage !== undefined), {
+    message: "statusMessage is not allowed when status is 'active'",
+    path: ["statusMessage"],
+  });
 
 export const AllVersionsStatusResponseSchema = z.object({
   updatedCount: z.number(),
@@ -274,17 +292,34 @@ export const SignatureTokenExchangeInputSchema = z.object({
 // -------- Health / Ping --------
 export const HealthBodySchema = z.object({
   status: z.string(),
+  /** GitHub OAuth App Client ID (official registry only). */
+  github_client_id: z.string().optional(),
 });
 
+// Per official spec, /ping returns { pong: boolean }.
+// Previously returned { environment, version }; that data moved to /version.
 export const PingBodySchema = z.object({
-  environment: z.string(),
-  version: z.string(),
+  pong: z.boolean(),
 });
 
 export const VersionBodySchema = z.object({
   version: z.string(),
   git_commit: z.string(),
   build_time: z.string(),
+});
+
+// -------- Validation --------
+export const ValidationIssueSchema = z.object({
+  type: z.string(),
+  path: z.string(),
+  message: z.string(),
+  severity: z.string(),
+  reference: z.string(),
+});
+
+export const ValidationResultSchema = z.object({
+  valid: z.boolean(),
+  issues: z.array(ValidationIssueSchema).nullable(),
 });
 
 // -------- Errors --------
@@ -321,7 +356,11 @@ export type StreamableHttpTransport = z.infer<
 >;
 export type SseTransport = z.infer<typeof SseTransportSchema>;
 export type Transport = z.infer<typeof TransportSchema>;
+/** Alias for {@link Transport} — matches upstream `LocalTransport` schema name. */
+export type LocalTransport = Transport;
 export type Remote = z.infer<typeof RemoteSchema>;
+/** Alias for {@link Remote} — matches upstream `RemoteTransport` schema name. */
+export type RemoteTransport = Remote;
 export type Repository = z.infer<typeof RepositorySchema>;
 export type Package = z.infer<typeof PackageSchema>;
 
@@ -362,6 +401,9 @@ export type SignatureTokenExchangeInput = z.infer<
 export type HealthBody = z.infer<typeof HealthBodySchema>;
 export type PingBody = z.infer<typeof PingBodySchema>;
 export type VersionBody = z.infer<typeof VersionBodySchema>;
+
+export type ValidationIssue = z.infer<typeof ValidationIssueSchema>;
+export type ValidationResult = z.infer<typeof ValidationResultSchema>;
 
 export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;
 export type ErrorModel = z.infer<typeof ErrorModelSchema>;
