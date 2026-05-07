@@ -120,6 +120,7 @@ Publish or update a server entry. Requires a registry token (JWT).
 import type { ServerJSON } from "mcp-registry-spec-sdk";
 
 const serverPayload: ServerJSON = {
+  $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   name: "org/my-server",
   description: "My MCP server",
   version: "1.0.0",
@@ -332,6 +333,15 @@ const icon: Icon = {
 
 This SDK is designed for server-side Node.js. Browser usage requires a fetch polyfill and may hit CORS restrictions.
 
+## Spec alignment
+
+Version `0.4.0` targets the current MCP Registry API spec (`2025-12-01`) and the latest released Server JSON schema (`2025-12-11`).
+
+- Default client API version: `v0.1` (stable)
+- Development API version: `v0`
+- Server JSON schema: `https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json`
+- Draft Server JSON changes are not treated as released until they move out of the upstream draft changelog.
+
 ## Migrating to v0.4.0
 
 ### Breaking Changes
@@ -387,7 +397,9 @@ This SDK is designed for server-side Node.js. Browser usage requires a fetch pol
 
 - [API Changelog](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/CHANGELOG.md)
 - [Server JSON Changelog](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/CHANGELOG.md)
-- [OpenAPI Spec](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/openapi.yaml)
+- [Generic OpenAPI Spec](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/openapi.yaml)
+- [Official Registry OpenAPI Spec](https://registry.modelcontextprotocol.io/openapi.yaml)
+- [Server JSON Schema](https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json)
 
 ## License
 

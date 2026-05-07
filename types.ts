@@ -1,5 +1,6 @@
 /**
- * MCP Registry SDK — Zod schemas aligned to upstream spec 2025-12-01
+ * MCP Registry SDK — Zod schemas aligned to Registry API 2025-12-01
+ * and Server JSON schema 2025-12-11
  * https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/openapi.yaml
  *
  * Also incorporates the official-registry-specific OpenAPI:
