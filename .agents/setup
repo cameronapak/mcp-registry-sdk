@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BUN_VERSION="1.3.10"
+
+echo "==> Ensuring Bun ${BUN_VERSION} is available"
+if [[ "$(bun --version 2>/dev/null || true)" != "$BUN_VERSION" ]]; then
+  if ! command -v curl >/dev/null 2>&1; then
+    sudo apt-get update
+    sudo apt-get install -y curl
+  fi
+
+  curl -fsSL https://bun.sh/install | bash -s -- "bun-v${BUN_VERSION}"
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+
+  mkdir -p "$HOME/.local/bin"
+  ln -sfn "$BUN_INSTALL/bin/bun" "$HOME/.local/bin/bun"
+  ln -sfn "$BUN_INSTALL/bin/bunx" "$HOME/.local/bin/bunx"
+fi
+
+echo "==> Installing dependencies"
+time bun install --frozen-lockfile
