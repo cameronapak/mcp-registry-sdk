@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "description": "A minimal, typed client for the official Model Context Protocol (MCP) Registry API.",
   "type": "module",
-  "packageManager": "bun@1.3.2",
+  "packageManager": "bun@1.3.10",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,17 +21,20 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "tsup index.ts --dts --format esm --sourcemap --clean --tsconfig tsconfig.json",
+    "check": "bun run test && bunx tsc --noEmit && bun run build && bun audit",
     "test": "bun test tests/",
     "test:schemas": "bun test tests/test_schemas.test.ts",
     "test:registry": "bun test tests/server_list.test.ts",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
     "prepare": "bun run build"
   },
   "publishConfig": {
     "access": "public"
   },
   "engines": {
-    "bun": ">=1.3.2",
-    "node": ">=18"
+    "bun": ">=1.3.10",
+    "node": ">=22"
   },
   "keywords": [
     "mcp",
@@ -49,11 +52,20 @@
   },
   "homepage": "https://github.com/cameronapak/mcp-registry-sdk",
   "dependencies": {
-    "zod": "^3.23.8"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "tsup": "^8.0.1",
-    "typescript": "^5.6.3"
+    "@changesets/cli": "3.0.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.12",
+    "esbuild": "0.28.1",
+    "glob": "10.5.0",
+    "minimatch": "9.0.9",
+    "picomatch": "4.0.4",
+    "rollup": "4.59.0"
   },
   "sideEffects": false
 }

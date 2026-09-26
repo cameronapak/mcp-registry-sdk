@@ -18,6 +18,23 @@ import type {
   ValidationResult,
   VersionBody,
 } from "./types.ts";
+import {
+  AllVersionsStatusResponseSchema,
+  GitHubOIDCTokenExchangeInputBodySchema,
+  GitHubTokenExchangeInputBodySchema,
+  HealthBodySchema,
+  ListServersOptionsSchema,
+  OIDCTokenExchangeInputBodySchema,
+  PingBodySchema,
+  ServerJSONSchema,
+  ServerListResponseSchema,
+  ServerResponseSchema,
+  SignatureTokenExchangeInputSchema,
+  StatusUpdateRequestSchema,
+  TokenResponseSchema,
+  ValidationResultSchema,
+  VersionBodySchema,
+} from "./types.ts";
 
 /**
  * Structured error with parsed registry problem+json details
@@ -68,9 +85,10 @@ export class AuthNamespace {
    * Exchange GitHub OAuth access token for Registry JWT
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-github-token}
    */
-  async exchangeGitHubOAuthAccessTokenForRegistryJWT({
-    github_token,
-  }: GitHubTokenExchangeInputBody): Promise<TokenResponse> {
+  async exchangeGitHubOAuthAccessTokenForRegistryJWT(
+    input: GitHubTokenExchangeInputBody,
+  ): Promise<TokenResponse> {
+    const { github_token } = GitHubTokenExchangeInputBodySchema.parse(input);
     const url = `${this.baseUrl}/${this.apiVersion}/auth/github-at`;
 
     const response = await fetch(url, {
@@ -90,16 +108,17 @@ export class AuthNamespace {
       );
     }
 
-    return await response.json();
+    return TokenResponseSchema.parse(await response.json());
   }
 
   /**
    * Exchange GitHub OIDC token for Registry JWT
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-github-oidc-token}
    */
-  async exchangeGitHubOIDCTokenForRegistryJWT({
-    oidc_token,
-  }: GitHubOIDCTokenExchangeInputBody): Promise<TokenResponse> {
+  async exchangeGitHubOIDCTokenForRegistryJWT(
+    input: GitHubOIDCTokenExchangeInputBody,
+  ): Promise<TokenResponse> {
+    const { oidc_token } = GitHubOIDCTokenExchangeInputBodySchema.parse(input);
     const url = `${this.baseUrl}/${this.apiVersion}/auth/github-oidc`;
 
     const response = await fetch(url, {
@@ -119,7 +138,7 @@ export class AuthNamespace {
       );
     }
 
-    return await response.json();
+    return TokenResponseSchema.parse(await response.json());
   }
 
   /**
@@ -129,6 +148,9 @@ export class AuthNamespace {
   async exchangeHTTPSignatureForRegistryJWT(
     signatureTokenExchangeInput: SignatureTokenExchangeInput,
   ): Promise<TokenResponse> {
+    const input = SignatureTokenExchangeInputSchema.parse(
+      signatureTokenExchangeInput,
+    );
     const url = `${this.baseUrl}/${this.apiVersion}/auth/http`;
 
     const response = await fetch(url, {
@@ -137,7 +159,7 @@ export class AuthNamespace {
         Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(signatureTokenExchangeInput),
+      body: JSON.stringify(input),
     });
 
     if (!response.ok) {
@@ -148,16 +170,17 @@ export class AuthNamespace {
       );
     }
 
-    return await response.json();
+    return TokenResponseSchema.parse(await response.json());
   }
 
   /**
    * Exchange OIDC ID token for Registry JWT
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/exchange-oidc-token}
    */
-  async exchangeOIDCIDTokenForRegistryJWT({
-    oidc_token,
-  }: OIDCTokenExchangeInputBody): Promise<TokenResponse> {
+  async exchangeOIDCIDTokenForRegistryJWT(
+    input: OIDCTokenExchangeInputBody,
+  ): Promise<TokenResponse> {
+    const { oidc_token } = OIDCTokenExchangeInputBodySchema.parse(input);
     const url = `${this.baseUrl}/${this.apiVersion}/auth/oidc`;
 
     const response = await fetch(url, {
@@ -177,7 +200,7 @@ export class AuthNamespace {
       );
     }
 
-    return await response.json();
+    return TokenResponseSchema.parse(await response.json());
   }
 
   /**
@@ -187,6 +210,9 @@ export class AuthNamespace {
   async exchangeDNSSignatureForRegistryJWT(
     signatureTokenExchangeInput: SignatureTokenExchangeInput,
   ): Promise<TokenResponse> {
+    const input = SignatureTokenExchangeInputSchema.parse(
+      signatureTokenExchangeInput,
+    );
     const url = `${this.baseUrl}/${this.apiVersion}/auth/dns`;
 
     const response = await fetch(url, {
@@ -195,7 +221,7 @@ export class AuthNamespace {
         Accept: "application/json, application/problem+json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(signatureTokenExchangeInput),
+      body: JSON.stringify(input),
     });
 
     if (!response.ok) {
@@ -206,7 +232,7 @@ export class AuthNamespace {
       );
     }
 
-    return await response.json();
+    return TokenResponseSchema.parse(await response.json());
   }
 }
 
@@ -244,7 +270,7 @@ export class HealthNamespace {
       );
     }
 
-    return await response.json();
+    return HealthBodySchema.parse(await response.json());
   }
 }
 
@@ -282,7 +308,7 @@ export class PingNamespace {
       );
     }
 
-    return await response.json();
+    return PingBodySchema.parse(await response.json());
   }
 }
 
@@ -320,7 +346,7 @@ export class VersionNamespace {
       );
     }
 
-    return await response.json();
+    return VersionBodySchema.parse(await response.json());
   }
 }
 
@@ -343,17 +369,18 @@ export class ServerNamespace {
   async listServers(
     options: ListServersOptions = {},
   ): Promise<ServerListResponse> {
+    const parsedOptions = ListServersOptionsSchema.parse(options);
     const params = new URLSearchParams();
 
-    if (options.cursor) params.append("cursor", options.cursor);
-    if (options.limit) params.append("limit", options.limit.toString());
-    if (options.search) params.append("search", options.search);
-    if (options.updatedSince) {
-      params.append("updated_since", options.updatedSince);
+    if (parsedOptions.cursor) params.append("cursor", parsedOptions.cursor);
+    if (parsedOptions.limit) params.append("limit", parsedOptions.limit.toString());
+    if (parsedOptions.search) params.append("search", parsedOptions.search);
+    if (parsedOptions.updatedSince) {
+      params.append("updated_since", parsedOptions.updatedSince);
     }
-    if (options.version) params.append("version", options.version);
-    if (options.includeDeleted !== undefined) {
-      params.append("include_deleted", String(options.includeDeleted));
+    if (parsedOptions.version) params.append("version", parsedOptions.version);
+    if (parsedOptions.includeDeleted !== undefined) {
+      params.append("include_deleted", String(parsedOptions.includeDeleted));
     }
 
     const url = `${this.baseUrl}/${this.apiVersion}/servers${
@@ -374,7 +401,7 @@ export class ServerNamespace {
       );
     }
 
-    return await response.json();
+    return ServerListResponseSchema.parse(await response.json());
   }
 
   /**
@@ -406,7 +433,7 @@ export class ServerNamespace {
       );
     }
 
-    return await response.json();
+    return ServerListResponseSchema.parse(await response.json());
   }
 
   /**
@@ -439,7 +466,7 @@ export class ServerNamespace {
       );
     }
 
-    return await response.json();
+    return ServerResponseSchema.parse(await response.json());
   }
 }
 
@@ -471,6 +498,7 @@ export class AdminNamespace {
     server: ServerJSON,
     registryToken?: string,
   ): Promise<ServerResponse> {
+    const payload = ServerJSONSchema.parse(server);
     const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
 
     const token = registryToken ?? this.getAuthToken?.();
@@ -485,7 +513,7 @@ export class AdminNamespace {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(server),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -496,45 +524,7 @@ export class AdminNamespace {
       );
     }
 
-    return await response.json();
-  }
-
-  /**
-   * Delete a specific server version (admin only).
-   * Optional endpoint in generic API spec, not implemented by official registry.
-   * {@see https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/generic-registry-api.md}
-   */
-  async deleteServerVersion(
-    serverName: string,
-    version: string,
-    registryToken?: string,
-  ): Promise<ServerResponse> {
-    const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}`;
-
-    const token = registryToken ?? this.getAuthToken?.();
-    if (!token) {
-      throw new RegistryError(
-        "Missing registry token for deleteServerVersion",
-      );
-    }
-
-    const response = await fetch(url, {
-      method: "DELETE",
-      headers: {
-        Accept: "application/json, application/problem+json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorModel = await parseErrorModel(response);
-      throw new RegistryError(
-        `Failed to delete server version: ${errorModel?.title || response.statusText} - ${errorModel?.detail || ""}`,
-        errorModel,
-      );
-    }
-
-    return await response.json();
+    return ServerResponseSchema.parse(await response.json());
   }
 
   /**
@@ -547,6 +537,7 @@ export class AdminNamespace {
     request: StatusUpdateRequest,
     registryToken?: string,
   ): Promise<ServerResponse> {
+    const payload = StatusUpdateRequestSchema.parse(request);
     const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/versions/${encodeURIComponent(version)}/status`;
 
     const token = registryToken ?? this.getAuthToken?.();
@@ -563,7 +554,7 @@ export class AdminNamespace {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -574,7 +565,7 @@ export class AdminNamespace {
       );
     }
 
-    return await response.json();
+    return ServerResponseSchema.parse(await response.json());
   }
 
   /**
@@ -586,6 +577,7 @@ export class AdminNamespace {
     request: StatusUpdateRequest,
     registryToken?: string,
   ): Promise<AllVersionsStatusResponse> {
+    const payload = StatusUpdateRequestSchema.parse(request);
     const url = `${this.baseUrl}/${this.apiVersion}/servers/${encodeURIComponent(serverName)}/status`;
 
     const token = registryToken ?? this.getAuthToken?.();
@@ -602,7 +594,7 @@ export class AdminNamespace {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -613,7 +605,7 @@ export class AdminNamespace {
       );
     }
 
-    return await response.json();
+    return AllVersionsStatusResponseSchema.parse(await response.json());
   }
 }
 
@@ -643,6 +635,7 @@ export class PublishNamespace {
     server: ServerJSON,
     registryToken?: string,
   ): Promise<ServerResponse> {
+    const payload = ServerJSONSchema.parse(server);
     const url = `${this.baseUrl}/${this.apiVersion}/publish`;
 
     const token = registryToken ?? this.getAuthToken?.();
@@ -657,7 +650,7 @@ export class PublishNamespace {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(server),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -668,7 +661,7 @@ export class PublishNamespace {
       );
     }
 
-    return await response.json();
+    return ServerResponseSchema.parse(await response.json());
   }
 
   /**
@@ -676,7 +669,7 @@ export class PublishNamespace {
    * Does not require authentication.
    * {@see https://registry.modelcontextprotocol.io/docs#/operations/validate-server}
    */
-  async validateServer(server: ServerJSON): Promise<ValidationResult> {
+  async validateServer(server: unknown): Promise<ValidationResult> {
     const url = `${this.baseUrl}/${this.apiVersion}/validate`;
 
     const response = await fetch(url, {
@@ -696,7 +689,7 @@ export class PublishNamespace {
       );
     }
 
-    return await response.json();
+    return ValidationResultSchema.parse(await response.json());
   }
 }
 
@@ -760,6 +753,11 @@ export type {
   DNSTokenExchangeInputBody,
   ErrorDetail,
   ErrorModel,
+  GenericIcon,
+  GenericPackage,
+  GenericRepository,
+  GenericServerJSON,
+  GenericServerJSONMeta,
   GitHubOIDCTokenExchangeInputBody,
   GitHubTokenExchangeInputBody,
   HealthBody,
@@ -780,6 +778,8 @@ export type {
   Remote,
   RemoteTransport,
   Repository,
+  ResponsePackage,
+  ResponseRepository,
   ServerJSON,
   ServerJSONMeta,
   ServerListResponse,
@@ -804,6 +804,11 @@ export {
   DNSTokenExchangeInputBodySchema,
   ErrorDetailSchema,
   ErrorModelSchema,
+  GenericIconSchema,
+  GenericPackageSchema,
+  GenericRepositorySchema,
+  GenericServerJSONMetaSchema,
+  GenericServerJSONSchema,
   GitHubOIDCTokenExchangeInputBodySchema,
   GitHubTokenExchangeInputBodySchema,
   HealthBodySchema,
@@ -822,6 +827,8 @@ export {
   RegistryExtensionsSchema,
   RemoteSchema,
   RepositorySchema,
+  ResponsePackageSchema,
+  ResponseRepositorySchema,
   ServerJSONMetaSchema,
   ServerJSONSchema,
   ServerListResponseSchema,

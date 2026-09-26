@@ -22,6 +22,11 @@ import {
   ValidationResultSchema,
   LocalTransportSchema,
   RemoteTransportSchema,
+  GenericServerJSONMetaSchema,
+  GenericServerJSONSchema,
+  ResponseRepositorySchema,
+  ServerResponseSchema,
+  SignatureTokenExchangeInputSchema,
 } from "../index.ts";
 
 const assertEquals = (actual: unknown, expected: unknown, message?: string) => {
@@ -73,12 +78,12 @@ test("StreamableHttpTransportSchema rejects missing url", () => {
   expect(result.success).toEqual(false);
 });
 
-test("StreamableHttpTransportSchema validates URL template variables", () => {
+test("StreamableHttpTransportSchema rejects unreleased leading URL templates", () => {
   const result = StreamableHttpTransportSchema.safeParse({
     type: "streamable-http" as const,
     url: "{base_url}/mcp",
   });
-  expect(result.success).toEqual(true);
+  expect(result.success).toEqual(false);
 });
 
 test("SseTransportSchema validates with required fields", () => {
@@ -218,18 +223,33 @@ test("KeyValueInputSchema requires name", () => {
 
 // ---- Repository ----
 
-test("RepositorySchema accepts full and partial objects", () => {
-  // Full object
+test("RepositorySchema requires a matching source and clean repository URL", () => {
   assertEquals(
     RepositorySchema.safeParse({ url: "https://github.com/org/repo", source: "github" }).success,
     true,
   );
-  // Legacy: missing url/source (API returns these for old servers)
-  expect(RepositorySchema.safeParse({ source: "github" }).success).toEqual(true);
-  expect(RepositorySchema.safeParse({ url: "https://github.com/org/repo" }).success).toEqual(true);
-  expect(RepositorySchema.safeParse({}).success).toEqual(true);
-  // Invalid url format
+  expect(RepositorySchema.safeParse({ source: "github" }).success).toEqual(false);
+  expect(RepositorySchema.safeParse({ url: "https://github.com/org/repo" }).success).toEqual(false);
+  expect(RepositorySchema.safeParse({}).success).toEqual(false);
   assertEquals(RepositorySchema.safeParse({ url: "not-a-url", source: "github" }).success, false);
+  assertEquals(
+    RepositorySchema.safeParse({ url: "https://gitlab.com/org/repo", source: "github" }).success,
+    false,
+  );
+  assertEquals(
+    RepositorySchema.safeParse({
+      url: "https://github.com/org/repo",
+      source: "github",
+      subfolder: "../outside",
+    }).success,
+    false,
+  );
+});
+
+test("ResponseRepositorySchema accepts legacy partial repositories", () => {
+  expect(ResponseRepositorySchema.safeParse({ source: "github" }).success).toEqual(true);
+  expect(ResponseRepositorySchema.safeParse({ url: "https://github.com/org/repo" }).success).toEqual(true);
+  expect(ResponseRepositorySchema.safeParse({}).success).toEqual(true);
 });
 
 // ---- Package ----
@@ -238,6 +258,7 @@ test("PackageSchema requires identifier and transport", () => {
   const valid = {
     registryType: "npm",
     identifier: "@org/pkg",
+    version: "1.0.0",
     transport: { type: "stdio" as const },
   };
   expect(PackageSchema.safeParse(valid).success).toEqual(true);
@@ -247,7 +268,11 @@ test("PackageSchema requires identifier and transport", () => {
 });
 
 test("PackageSchema validates fileSha256 pattern", () => {
-  const base = { registryType: "npm", identifier: "pkg", transport: { type: "stdio" as const } };
+  const base = {
+    registryType: "mcpb",
+    identifier: "https://github.com/org/repo/releases/download/v1/server.mcpb",
+    transport: { type: "stdio" as const },
+  };
   assertEquals(PackageSchema.safeParse({ ...base, fileSha256: "a".repeat(64) }).success, true);
   assertEquals(PackageSchema.safeParse({ ...base, fileSha256: "z".repeat(64) }).success, false);
   assertEquals(PackageSchema.safeParse({ ...base, fileSha256: "abc" }).success, false);
@@ -371,7 +396,7 @@ test("RegistryExtensionsSchema requires status and statusChangedAt", () => {
 
 // ---- ServerResponseMeta ----
 
-test("ServerResponseMetaSchema requires official key", () => {
+test("ServerResponseMetaSchema accepts absent official metadata", () => {
   const valid = {
     "io.modelcontextprotocol.registry/official": {
       publishedAt: "2025-01-01T00:00:00Z",
@@ -381,7 +406,7 @@ test("ServerResponseMetaSchema requires official key", () => {
     },
   };
   expect(ServerResponseMetaSchema.safeParse(valid).success).toEqual(true);
-  expect(ServerResponseMetaSchema.safeParse({}).success).toEqual(false);
+  expect(ServerResponseMetaSchema.safeParse({}).success).toEqual(true);
 });
 
 // ---- StatusUpdateRequest ----
@@ -540,13 +565,170 @@ test("LocalTransportSchema is an alias for TransportSchema", () => {
   );
 });
 
-test("RemoteTransportSchema accepts variables for URL templating", () => {
+test("RemoteTransportSchema validates declared variables inside HTTPS URLs", () => {
   const result = RemoteTransportSchema.safeParse({
     type: "streamable-http",
-    url: "{baseUrl}/mcp",
+    url: "https://{tenant}.example.com/mcp",
     variables: {
-      baseUrl: { description: "API base URL", default: "https://api.example.com" },
+      tenant: { description: "Tenant" },
     },
   });
   expect(result.success).toEqual(true);
+  expect(
+    RemoteTransportSchema.safeParse({
+      type: "streamable-http",
+      url: "https://{tenant}.example.com/mcp",
+    }).success,
+  ).toEqual(false);
+});
+
+test("server and package versions reject aliases and ranges", () => {
+  const server = {
+    $schema: SCHEMA_URL,
+    name: "org/server",
+    description: "A server",
+  };
+  for (const version of ["", "latest", "^1.2.3", "1.2 - 2.0", "1.x", "1.2 || 2.0"]) {
+    expect(ServerJSONSchema.safeParse({ ...server, version }).success).toEqual(false);
+  }
+
+  const pkg = {
+    registryType: "cargo",
+    identifier: "mcp-server",
+    transport: { type: "stdio" },
+  };
+  expect(PackageSchema.safeParse({ ...pkg, version: "1.2.3" }).success).toEqual(true);
+  expect(PackageSchema.safeParse({ ...pkg, version: ">=1" }).success).toEqual(false);
+});
+
+test("official package schemas enforce registry-specific fields", () => {
+  const transport = { type: "stdio" };
+  expect(
+    PackageSchema.safeParse({ registryType: "cargo", identifier: "pkg", version: "1.0.0", transport }).success,
+  ).toEqual(true);
+  expect(
+    PackageSchema.safeParse({ registryType: "cargo", identifier: "pkg", version: "1.0.0", registryBaseUrl: "https://example.com", transport }).success,
+  ).toEqual(false);
+  expect(
+    PackageSchema.safeParse({ registryType: "oci", identifier: "quay.io/org/image:1.0", transport }).success,
+  ).toEqual(true);
+  expect(
+    PackageSchema.safeParse({ registryType: "oci", identifier: "org/image:1.0", transport }).success,
+  ).toEqual(true);
+  expect(
+    PackageSchema.safeParse({ registryType: "oci", identifier: "evil.example/org/image:1.0", transport }).success,
+  ).toEqual(false);
+  expect(
+    PackageSchema.safeParse({ registryType: "mcpb", identifier: "https://github.com/org/repo/releases/download/v1/server.mcpb", transport }).success,
+  ).toEqual(false);
+  expect(
+    PackageSchema.safeParse({
+      registryType: "mcpb",
+      identifier: "https://github.com/org/repo/not-a-release/server.mcpb",
+      fileSha256: "a".repeat(64),
+      transport,
+    }).success,
+  ).toEqual(false);
+  expect(
+    PackageSchema.safeParse({ registryType: "unknown", identifier: "pkg", version: "1.0.0", transport }).success,
+  ).toEqual(false);
+});
+
+test("package transport templates must reference declared inputs", () => {
+  const pkg = {
+    registryType: "npm",
+    identifier: "@org/pkg",
+    version: "1.0.0",
+    transport: { type: "streamable-http", url: "https://example.com/{token}" },
+  };
+  expect(PackageSchema.safeParse(pkg).success).toEqual(false);
+  expect(
+    PackageSchema.safeParse({
+      ...pkg,
+      environmentVariables: [{ name: "token", isSecret: true }],
+    }).success,
+  ).toEqual(true);
+});
+
+test("official publisher metadata enforces 4 KiB and generic metadata preserves extensions", () => {
+  expect(
+    ServerJSONSchema.safeParse({
+      $schema: SCHEMA_URL,
+      name: "org/server",
+      description: "A server",
+      version: "1.0.0",
+      _meta: {
+        "io.modelcontextprotocol.registry/publisher-provided": { value: "x".repeat(4096) },
+      },
+    }).success,
+  ).toEqual(false);
+
+  const generic = GenericServerJSONMetaSchema.parse({ "com.example/custom": { enabled: true } });
+  expect(generic["com.example/custom"]).toEqual({ enabled: true });
+});
+
+test("official schemas reject unknown fields while the generic server schema makes $schema optional", () => {
+  expect(InputSchema.safeParse({ description: "input", unexpected: true }).success).toEqual(false);
+  expect(
+    GenericServerJSONSchema.safeParse({
+      name: "org/server",
+      description: "A server",
+      version: "1.0.0",
+    }).success,
+  ).toEqual(true);
+});
+
+test("list options enforce production bounds and incremental sync rules", () => {
+  expect(ListServersOptionsSchema.safeParse({ limit: 1 }).success).toEqual(true);
+  expect(ListServersOptionsSchema.safeParse({ limit: 0 }).success).toEqual(false);
+  expect(ListServersOptionsSchema.safeParse({ limit: 1.5 }).success).toEqual(false);
+  expect(ListServersOptionsSchema.safeParse({ limit: 101 }).success).toEqual(false);
+  expect(ListServersOptionsSchema.safeParse({ updatedSince: "not-a-date" }).success).toEqual(false);
+  expect(
+    ListServersOptionsSchema.safeParse({
+      updatedSince: "2026-01-01T00:00:00Z",
+      includeDeleted: false,
+    }).success,
+  ).toEqual(false);
+});
+
+test("signature input requires current RFC3339 timestamps, hex signatures, and eligible domains", () => {
+  const timestamp = new Date().toISOString();
+  expect(
+    SignatureTokenExchangeInputSchema.safeParse({
+      domain: "example.com",
+      signed_timestamp: "abcdef12",
+      timestamp,
+    }).success,
+  ).toEqual(true);
+  expect(
+    SignatureTokenExchangeInputSchema.safeParse({
+      domain: "example.github.io",
+      signed_timestamp: "abcdef12",
+      timestamp,
+    }).success,
+  ).toEqual(false);
+  expect(
+    SignatureTokenExchangeInputSchema.safeParse({
+      domain: "example.com",
+      signed_timestamp: "base64+/=",
+      timestamp,
+    }).success,
+  ).toEqual(false);
+});
+
+test("ServerResponseSchema requires response metadata and preserves server publisher metadata", () => {
+  const response = {
+    server: {
+      name: "org/server",
+      description: "A server",
+      version: "1.0.0",
+      _meta: {
+        "io.modelcontextprotocol.registry/publisher-provided": { tool: "publisher" },
+      },
+    },
+    _meta: {},
+  };
+  expect(ServerResponseSchema.safeParse(response).success).toEqual(true);
+  expect(ServerResponseSchema.safeParse({ server: response.server }).success).toEqual(false);
 });

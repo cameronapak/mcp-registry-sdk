@@ -9,7 +9,7 @@ A minimal, typed client for the official Model Context Protocol (MCP) Registry A
 - pnpm: `pnpm add mcp-registry-spec-sdk`
 - yarn: `yarn add mcp-registry-spec-sdk`
 
-Requires Bun 1.3.2+ for development. Published package supports Node.js 18+.
+Requires Bun 1.3.10+ for development. Published package supports maintained Node.js releases starting with Node.js 22.
 
 ## Development
 
@@ -43,9 +43,8 @@ const list = await client.server.listServers({
   search: "openai",
   limit: 10,
   updatedSince: "2024-01-01T00:00:00Z",
-  includeDeleted: false,
 });
-console.log("servers:", list.servers.length, "next:", list.metadata.nextCursor);
+console.log("servers:", list.servers?.length ?? 0, "next:", list.metadata.nextCursor);
 
 // Get a specific server version
 const server = await client.server.getServerVersion("org/server-name", "latest");
@@ -69,7 +68,7 @@ The client is namespaced by feature:
 - `ping` — Connectivity check
 - `server` — List/get servers (+ version endpoints)
 - `publish` — Publish a server
-- `admin` — Admin-only operations (edit, delete, status updates)
+- `admin` — Admin-only edit and status operations
 
 ### Client
 
@@ -98,9 +97,11 @@ const response = await client.server.listServers({
   version: "1.0.0",          // optional
   includeDeleted: true,      // optional — include deleted servers
 });
-// response.servers: ServerResponse[]
+// response.servers: ServerResponse[] | null
 // response.metadata: { count: number, nextCursor?: string }
 ```
+
+When `updatedSince` is present, the Registry always includes deleted records. Passing `includeDeleted: false` with `updatedSince` is invalid and the SDK rejects it before sending a request. Limits must be integers from 1 through 100.
 
 Get a specific server version:
 
@@ -144,17 +145,19 @@ const published2 = await client.publish.publishServer(serverPayload, "my-jwt-tok
 
 ### Admin
 
-Edit, delete, and update status of server versions. All require a registry token.
+Edit and update the status of server versions. All require a registry token. The optional generic-registry DELETE endpoint is not exposed because the official Registry does not implement it.
 
 ```ts
 // Edit a server version
 const edited = await client.admin.editServerVersion(
   "org/server-name", "1.0.0",
-  { name: "org/server-name", description: "Updated", version: "1.0.0" },
+  {
+    $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    name: "org/server-name",
+    description: "Updated",
+    version: "1.0.0",
+  },
 );
-
-// Delete a server version (optional endpoint, not on official registry)
-const deleted = await client.admin.deleteServerVersion("org/server-name", "1.0.0");
 
 // Update status of a single version
 const updated = await client.admin.updateVersionStatus(
@@ -185,7 +188,8 @@ const jwt2 = await client.auth.exchangeGitHubOIDCTokenForRegistryJWT({
   oidc_token: "gh-oidc-xxx",
 });
 
-// Generic OIDC ID token -> Registry JWT
+// Configured OIDC provider -> Registry JWT. This endpoint is deployment-dependent
+// and is primarily used for official Registry administration.
 const jwt3 = await client.auth.exchangeOIDCIDTokenForRegistryJWT({
   oidc_token: "oidc-xxx",
 });
@@ -193,17 +197,21 @@ const jwt3 = await client.auth.exchangeOIDCIDTokenForRegistryJWT({
 // HTTP signature -> Registry JWT
 const jwt4 = await client.auth.exchangeHTTPSignatureForRegistryJWT({
   domain: "yourdomain.com",
-  signed_timestamp: "base64signature",
+  signed_timestamp: "abcdef1234567890", // hex-encoded signature
   timestamp: new Date().toISOString(),
 });
 
 // DNS signature -> Registry JWT
 const jwt5 = await client.auth.exchangeDNSSignatureForRegistryJWT({
   domain: "yourdomain.com",
-  signed_timestamp: "base64signature",
+  signed_timestamp: "abcdef1234567890", // hex-encoded signature
   timestamp: new Date().toISOString(),
 });
 ```
+
+DNS and HTTP proofs support Ed25519 and ECDSA P-384 keys. The timestamp must be RFC3339 and within 15 seconds of the exchange request. IP addresses, single-label domains, and `github.io` domains are rejected.
+
+GitHub Actions must request an OIDC token whose audience is the Registry base URL, such as `https://registry.modelcontextprotocol.io`. GitHub organization namespaces require an active organization Owner. Classic PATs need `read:org`; fine-grained PATs need organization Members read access.
 
 ## Types
 
@@ -252,6 +260,8 @@ import {
 const parsed = ServerJSONSchema.safeParse(myData);
 if (!parsed.success) console.error(parsed.error);
 ```
+
+`ServerJSONSchema` models official Registry publish requirements. `GenericServerJSONSchema` models the portable released server.json contract, where `$schema` is optional and custom `_meta` namespaces are preserved. Response schemas use separate compatibility shapes for legacy package and repository records.
 
 ### Argument Types
 
@@ -340,67 +350,45 @@ const icon: Icon = {
 
 ## Browser usage
 
-This SDK is designed for server-side Bun or Node.js. Browser usage requires a fetch polyfill and may hit CORS restrictions.
+Modern browsers already provide `fetch`, so no polyfill is normally needed. Browser requests still depend on the target registry's CORS policy.
 
 ## Spec alignment
 
-Version `0.4.0` targets the current MCP Registry API spec (`2025-12-01`) and the latest released Server JSON schema (`2025-12-11`).
+The SDK targets the current MCP Registry API spec (`2025-12-01`), the official Registry runtime API, and the latest released Server JSON schema (`2025-12-11`).
 
 - Default client API version: `v0.1` (stable)
 - Development API version: `v0`
 - Server JSON schema: `https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json`
-- Draft Server JSON changes are not treated as released until they move out of the upstream draft changelog.
+- Official publishing adds package allowlists, HTTPS and repository checks, metadata limits, and semantic validation beyond the portable schema.
+- Draft-only leading transport URL templates such as `{baseUrl}/mcp` are rejected until released upstream.
 
-## Migrating to v0.4.0
+## Migrating to v0.5.0
 
 ### Breaking Changes
 
-1. **Default API version changed** from `v0` to `v0.1`:
-   ```ts
-   // v0.3.0: defaulted to v0
-   const client = new MCPRegistryClient();
-
-   // v0.4.0: defaults to v0.1 (stable)
-   const client = new MCPRegistryClient(); // now uses v0.1
-
-   // Explicitly use v0 if needed
-   const client = new MCPRegistryClient(undefined, "v0");
-   ```
-
-2. **`getServerByName()` removed** — use `getServerVersion()`:
-   ```ts
-   // Old
-   const server = await client.server.getServerByName("org/server");
-
-   // New
-   const server = await client.server.getServerVersion("org/server", "latest");
-   ```
-
-3. **`ArgumentSchema` is now a discriminated union** with `type: "positional"` or `type: "named"`. If you were constructing `Argument` objects without a `type` field, add the appropriate type.
-
-4. **`KeyValueInputSchema` now requires `name`**. Previously it was an alias for `ArgumentSchema`.
-
-5. **`Package.identifier` and `Package.transport` are now required** (were optional).
-
-6. **`deleteServerVersion()` now returns `ServerResponse`** instead of `void`.
-
-7. **`ServerJSONSchema` now enforces** `name` pattern (`org/name`), `description` max 100 chars, `version` max 255 chars.
+1. Node.js 22 is now the minimum supported Node release.
+2. Zod 4 replaces Zod 3.
+3. Official schemas are strict and reject unknown properties instead of silently removing them.
+4. `Package` is a registry-specific union. npm, PyPI, NuGet, and Cargo require a concrete version; OCI embeds its tag or digest in `identifier`; MCPB requires `fileSha256`.
+5. Publish repositories require `url` and `source`. Use `ResponseRepository` for legacy API records.
+6. Positional arguments require `value` or `valueHint`.
+7. `ServerListResponse.servers` and `AllVersionsStatusResponse.servers` can be `null`, matching the generated official OpenAPI.
+8. `ServerResponse._meta` is required, while its official metadata member is optional.
+9. `admin.deleteServerVersion()` was removed because the official Registry does not implement DELETE.
 
 ### New Features
 
-- `title` field on servers (optional display name)
-- `placeholder` field on inputs
-- `statusMessage` and `statusChangedAt` on registry metadata
-- `includeDeleted` option on list/get endpoints
-- `updateVersionStatus()` and `updateAllVersionsStatus()` admin methods
-- `StatusUpdateRequestSchema` and `AllVersionsStatusResponseSchema`
-- Proper `PositionalArgumentSchema` and `NamedArgumentSchema`
-- Transport URL pattern validation
-- `fileSha256` hex pattern validation
+- Official package support for Cargo, Quay, and the current registry allowlists
+- `GenericServerJSONSchema`, `GenericPackageSchema`, and generic metadata passthrough
+- Separate response repository and package schemas for legacy records
+- Request and response validation in client methods
+- RFC3339, list-limit, metadata-size, template-variable, and auth-proof validation
 
 ### Bug Fixes
 
-- `updatedSince` query param now correctly sent as `updated_since` to the API
+- Incremental sync options can no longer generate a known HTTP 400
+- Server and package version ranges are rejected
+- Publisher metadata inside `server._meta` is retained in response types
 
 ## Additional Resources
 
