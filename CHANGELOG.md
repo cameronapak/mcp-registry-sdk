@@ -1,3 +1,9 @@
+## 0.5.0
+
+### Minor Changes
+
+- 67f5d5f: Align the SDK with the current official MCP Registry runtime. Separate official publish, portable generic, and legacy response schemas; enforce current package, version, repository, transport, metadata, authentication, and pagination rules; validate client requests and responses; and remove the unsupported delete operation.
+
 ## 0.4.0 - 2026-04-18
 
 Targets Registry API spec `2025-12-01` and Server JSON schema `2025-12-11`.
